@@ -39,14 +39,20 @@ static class Program
         var instance = Environment.GetEnvironmentVariable("HESPER_HOME") == null ? "" : "-" + Convert.ToHexString(
             System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(Paths.Home.ToLowerInvariant())))[..12];
         using var single = new Mutex(true, @"Local\Hesper" + instance, out var first);
-        if (!first) return 0;  // already running: its icon is in the notification area
+        // hesper://… (Windows starts Hesper.exe with the link): to the running Hesper, or handled once started
+        var link = args.FirstOrDefault(a => a.StartsWith("hesper:", StringComparison.OrdinalIgnoreCase));
+        if (!first)
+        {
+            if (link != null) LinkPipe.Send(instance, link);
+            return 0;  // already running: its icon is in the notification area
+        }
         Identity.Register();  // before the notification icon: Windows then knows whose notifications they are
         ApplicationConfiguration.Initialize();
         // Never vanish without a word: say what went wrong, and keep it in hesper.log
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
         Application.ThreadException += (_, e) => Fail(e.Exception);
         AppDomain.CurrentDomain.UnhandledException += (_, e) => Fail((Exception)e.ExceptionObject);
-        try { return Run(); }
+        try { return Run(instance, link); }
         catch (Exception e) { Fail(e); return 1; }
     }
 
@@ -73,9 +79,9 @@ static class Program
         return 0;
     }
 
-    static int Run()
+    static int Run(string instance, string? link)
     {
-        Application.Run(new TrayApp());  // the first launch opens the welcome window, which sets up
+        Application.Run(new TrayApp(instance, link));  // the first launch opens the welcome window, which sets up
         return 0;
     }
 

@@ -20,6 +20,8 @@ sealed class AppSettings
     public string MyName { get; set; } = Environment.UserName;
     public string AppLanguage { get; set; } = "";     // "" = Windows' language
     public string Hotkey { get; set; } = "Ctrl+Alt+R"; // start / stop recording; "" = none
+    public string MarkHotkey { get; set; } = "Ctrl+Alt+M"; // while recording: mark an important moment; "" = none
+    public bool AllowLinks { get; set; } = true;       // hesper:// links (a shortcut, a Stream Deck…) can start, stop, pause, mark
     public string EmailApp { get; set; } = "default";  // default, outlook, gmail, outlookWeb
     public string GmailAccount { get; set; } = "";
     // Recording
@@ -54,6 +56,8 @@ sealed class AppSettings
     public bool DueReminders { get; set; } = true;
     public bool Briefs { get; set; } = true;
     public bool UseCalendar { get; set; } = true;
+    public string CalendarLink { get; set; } = "";     // a calendar's ICS link (Google, the new Outlook…), besides classic Outlook
+    public bool WeeklyRecap { get; set; } = true;      // Friday afternoon: the week's meetings and to-dos
     // Privacy and storage
     public string Storage { get; set; } = "local";     // local, onedrive, custom
     public string OneDrivePath { get; set; } = "";
@@ -64,6 +68,12 @@ sealed class AppSettings
     public bool Welcomed { get; set; }
     /// A model that ran out of memory on this PC, said in the popover until dismissed or replaced.
     public MemoryWarning? Memory { get; set; }
+    public string ModelTipDismissed { get; set; } = "";  // the better notes model last offered and turned down
+    public string WeeklyRecapSent { get; set; } = "";    // the week ("2026-48") whose recap was shown
+    // The home view in a window of its own (detached from the notification area): open, on top, where
+    public bool Detached { get; set; }
+    public bool DetachedOnTop { get; set; }
+    public int[]? DetachedBounds { get; set; }           // x, y, width, height
 
     /// No settings.json yet: the very first launch.
     [System.Text.Json.Serialization.JsonIgnore] public bool IsNew { get; private set; }

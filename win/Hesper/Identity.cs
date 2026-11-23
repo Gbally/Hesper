@@ -34,7 +34,10 @@ static class Identity
             }
             // A test setup (HESPER_HOME) mustn't take the Start menu's shortcut from the real one
             if (Environment.GetEnvironmentVariable("HESPER_HOME") == null && Environment.ProcessPath is { } exe)
+            {
                 WriteShortcut(exe);
+                RegisterLinks(exe);
+            }
         }
         catch (Exception e)  // never a reason not to start: notifications then work as before
         {
@@ -54,9 +57,24 @@ static class Identity
         return null;
     }
 
+    const string LinksKey = @"Software\Classes\hesper";
+
+    /// hesper://record, stop, pause, mark… (a desktop shortcut, a Stream Deck, AutoHotkey, a terminal):
+    /// Windows opens them with this exe, for the current user only.
+    static void RegisterLinks(string exe)
+    {
+        using var k = Registry.CurrentUser.CreateSubKey(LinksKey);
+        k.SetValue("", "URL:Hesper");
+        k.SetValue("URL Protocol", "");
+        using (var icon = k.CreateSubKey("DefaultIcon")) icon.SetValue("", $"\"{exe}\",0");
+        using var cmd = k.CreateSubKey(@"shell\open\command");
+        cmd.SetValue("", $"\"{exe}\" \"%1\"");
+    }
+
     /// Uninstalling: the registration and the shortcut go too.
     public static void Remove()
     {
+        try { Registry.CurrentUser.DeleteSubKeyTree(LinksKey, false); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         try { Registry.CurrentUser.DeleteSubKeyTree(RegistryKey, false); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
         try { File.Delete(Shortcut); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }
@@ -142,5 +160,46 @@ static class Identity
         void GetValue(ref PropertyKey key, out PropVariant value);
         void SetValue(ref PropertyKey key, ref PropVariant value);
         void Commit();
+    }
+}
+
+/// A hesper:// link opened while Hesper runs starts a second Hesper.exe: it hands the link over to
+/// the running one through a named pipe (this user's session only) and quits.
+static class LinkPipe
+{
+    static string Name(string instance) => $"Hesper-links{instance}-{Environment.UserName}";
+
+    public static bool Send(string instance, string url)
+    {
+        try
+        {
+            using var c = new System.IO.Pipes.NamedPipeClientStream(".", Name(instance), System.IO.Pipes.PipeDirection.Out);
+            c.Connect(3000);
+            using var w = new StreamWriter(c);
+            w.Write(url);
+            return true;
+        }
+        catch (Exception e) when (e is IOException or TimeoutException or UnauthorizedAccessException) { return false; }
+    }
+
+    /// Calls got (on a thread of its own) with each link sent.
+    public static void Listen(string instance, Action<string> got)
+    {
+        var t = new Thread(() =>
+        {
+            while (true)
+            {
+                try
+                {
+                    using var s = new System.IO.Pipes.NamedPipeServerStream(Name(instance), System.IO.Pipes.PipeDirection.In);
+                    s.WaitForConnection();
+                    using var r = new StreamReader(s);
+                    var url = r.ReadToEnd().Trim();
+                    if (url.StartsWith("hesper:", StringComparison.OrdinalIgnoreCase)) got(url);
+                }
+                catch (IOException e) { Paths.WriteLog("links: " + e.Message); Thread.Sleep(1000); }
+            }
+        }) { IsBackground = true, Name = "hesper:// links" };
+        t.Start();
     }
 }

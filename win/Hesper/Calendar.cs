@@ -31,6 +31,8 @@ sealed class OutlookCalendar : IDisposable
 
     /// Today's events (and tomorrow morning's), from the last read; [] when off or unavailable.
     public List<CalendarEvent> Events { get; private set; } = [];
+    /// From the calendar link (ICS, read by the engine every 15 minutes), merged with Outlook's.
+    public List<CalendarEvent> LinkEvents { get; set; } = [];
     public string? Error { get; private set; }
     public event Action? Changed;
 
@@ -115,21 +117,24 @@ sealed class OutlookCalendar : IDisposable
 
     static bool Real(CalendarEvent e) => e.IsOnline || e.Attendees.Count > 0;
 
+    /// Outlook's events and the link's, one of each when both have it (same title and start).
+    List<CalendarEvent> All => Events.Concat(LinkEvents.Where(l => !Events.Any(e => e.Title == l.Title && e.Start == l.Start))).ToList();
+
     /// The meeting happening now (or starting within 10 minutes), real meetings first.
     public CalendarEvent? Current(DateTime? at = null)
     {
         var now = at ?? DateTime.Now;
-        return Events.Where(e => e.End > now && e.Start <= now.AddMinutes(10) && (e.End - e.Start) < TimeSpan.FromHours(6))
+        return All.Where(e => e.End > now && e.Start <= now.AddMinutes(10) && (e.End - e.Start) < TimeSpan.FromHours(6))
                      .OrderByDescending(e => (e.IsOnline ? 3 : 0) + (e.Attendees.Count > 0 ? 2 : 0) - Math.Abs((e.Start - now).TotalHours))
                      .FirstOrDefault();
     }
 
     /// Today's real meetings (with other people or a call link), in order.
-    public List<CalendarEvent> Today() => Events.Where(e => e.Start.Date == DateTime.Today && Real(e)).OrderBy(e => e.Start).ToList();
+    public List<CalendarEvent> Today() => All.Where(e => e.Start.Date == DateTime.Today && Real(e)).OrderBy(e => e.Start).ToList();
 
     /// Real meetings starting within the next minutes.
     public List<CalendarEvent> Upcoming(double minutes) =>
-        Events.Where(e => e.Start >= DateTime.Now && e.Start <= DateTime.Now.AddMinutes(minutes) && Real(e)).OrderBy(e => e.Start).ToList();
+        All.Where(e => e.Start >= DateTime.Now && e.Start <= DateTime.Now.AddMinutes(minutes) && Real(e)).OrderBy(e => e.Start).ToList();
 
     public void Dispose()
     {

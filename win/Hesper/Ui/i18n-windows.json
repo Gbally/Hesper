@@ -63,7 +63,11 @@
   "Try": "Essayer",
   "Notifications are turned off for Hesper in Windows, so you won't see these.": "Les notifications de Hesper sont désactivées dans Windows : vous ne les verrez pas.",
   "Notifications are turned off in Windows, so you won't see these.": "Les notifications sont désactivées dans Windows : vous ne les verrez pas.",
-  "Windows only lists Hesper's notifications in the notification center — no pop-up.": "Windows range les notifications de Hesper dans le centre de notifications, sans les afficher à l'écran."
+  "Windows only lists Hesper's notifications in the notification center — no pop-up.": "Windows range les notifications de Hesper dans le centre de notifications, sans les afficher à l'écran.",
+  "Open in a window (close it to go back to the notification area)": "Ouvrir dans une fenêtre (fermez-la pour revenir à la zone de notification)",
+  "Use them from a desktop shortcut, a Stream Deck, AutoHotkey or a terminal (start hesper://record). A recording started by a link is always announced.": "Utilisez-les depuis un raccourci sur le bureau, un Stream Deck, AutoHotkey ou un terminal (start hesper://record). Un enregistrement lancé par un lien est toujours annoncé.",
+  "Started by a hesper:// link (a shortcut, a Stream Deck…).": "Lancé par un lien hesper:// (un raccourci, un Stream Deck…).",
+  "For a calendar Hesper can't read from Outlook: Google Calendar (Settings → your calendar → “Secret address in iCal format”), the new Outlook (Settings → Calendar → Shared calendars → Publish), iCloud… Only this link is read, every 15 minutes.": "Pour un agenda que Hesper ne peut pas lire dans Outlook : Google Agenda (Paramètres → votre agenda → « Adresse secrète au format iCal »), le nouvel Outlook (Paramètres → Calendrier → Calendriers partagés → Publier), iCloud… Seul ce lien est lu, toutes les 15 minutes."
  },
  "es": {
   "Meeting notes that never leave your PC.": "Notas de reunión que nunca salen de tu PC.",
@@ -129,7 +133,11 @@
   "Try": "Probar",
   "Notifications are turned off for Hesper in Windows, so you won't see these.": "Las notificaciones de Hesper están desactivadas en Windows, así que no las verás.",
   "Notifications are turned off in Windows, so you won't see these.": "Las notificaciones están desactivadas en Windows, así que no las verás.",
-  "Windows only lists Hesper's notifications in the notification center — no pop-up.": "Windows solo muestra las notificaciones de Hesper en el centro de notificaciones, sin ventana emergente."
+  "Windows only lists Hesper's notifications in the notification center — no pop-up.": "Windows solo muestra las notificaciones de Hesper en el centro de notificaciones, sin ventana emergente.",
+  "Open in a window (close it to go back to the notification area)": "Abrir en una ventana (ciérrala para volver al área de notificación)",
+  "Use them from a desktop shortcut, a Stream Deck, AutoHotkey or a terminal (start hesper://record). A recording started by a link is always announced.": "Úsalos desde un acceso directo en el escritorio, un Stream Deck, AutoHotkey o una terminal (start hesper://record). Una grabación iniciada por un enlace siempre se anuncia.",
+  "Started by a hesper:// link (a shortcut, a Stream Deck…).": "Iniciada por un enlace hesper:// (un acceso directo, un Stream Deck…).",
+  "For a calendar Hesper can't read from Outlook: Google Calendar (Settings → your calendar → “Secret address in iCal format”), the new Outlook (Settings → Calendar → Shared calendars → Publish), iCloud… Only this link is read, every 15 minutes.": "Para un calendario que Hesper no puede leer en Outlook: Google Calendar (Configuración → tu calendario → «Dirección secreta en formato iCal»), el nuevo Outlook (Configuración → Calendario → Calendarios compartidos → Publicar), iCloud… Solo se lee este enlace, cada 15 minutos."
  },
  "pt": {
   "Meeting notes that never leave your PC.": "Notas de reunião que nunca saem do seu PC.",
@@ -195,7 +203,11 @@
   "Try": "Experimentar",
   "Notifications are turned off for Hesper in Windows, so you won't see these.": "As notificações do Hesper estão desativadas no Windows, por isso não as verá.",
   "Notifications are turned off in Windows, so you won't see these.": "As notificações estão desativadas no Windows, por isso não as verá.",
-  "Windows only lists Hesper's notifications in the notification center — no pop-up.": "O Windows só mostra as notificações do Hesper na central de notificações, sem janela."
+  "Windows only lists Hesper's notifications in the notification center — no pop-up.": "O Windows só mostra as notificações do Hesper na central de notificações, sem janela.",
+  "Open in a window (close it to go back to the notification area)": "Abrir numa janela (feche-a para voltar à área de notificação)",
+  "Use them from a desktop shortcut, a Stream Deck, AutoHotkey or a terminal (start hesper://record). A recording started by a link is always announced.": "Use-os a partir de um atalho no ambiente de trabalho, um Stream Deck, AutoHotkey ou um terminal (start hesper://record). Uma gravação iniciada por uma ligação é sempre anunciada.",
+  "Started by a hesper:// link (a shortcut, a Stream Deck…).": "Iniciada por uma ligação hesper:// (um atalho, um Stream Deck…).",
+  "For a calendar Hesper can't read from Outlook: Google Calendar (Settings → your calendar → “Secret address in iCal format”), the new Outlook (Settings → Calendar → Shared calendars → Publish), iCloud… Only this link is read, every 15 minutes.": "Para um calendário que o Hesper não consegue ler no Outlook: Google Calendar (Definições → o seu calendário → «Endereço secreto em formato iCal»), o novo Outlook (Definições → Calendário → Calendários partilhados → Publicar), iCloud… Só esta ligação é lida, a cada 15 minutos."
  },
  "ja": {
   "Meeting notes that never leave your PC.": "PC の外に出ない会議メモ。",
@@ -261,7 +273,11 @@
   "Try": "試す",
   "Notifications are turned off for Hesper in Windows, so you won't see these.": "Windows で Hesper の通知がオフになっているため、表示されません。",
   "Notifications are turned off in Windows, so you won't see these.": "Windows で通知がオフになっているため、表示されません。",
-  "Windows only lists Hesper's notifications in the notification center — no pop-up.": "Windows は Hesper の通知を通知センターに表示するだけで、ポップアップしません。"
+  "Windows only lists Hesper's notifications in the notification center — no pop-up.": "Windows は Hesper の通知を通知センターに表示するだけで、ポップアップしません。",
+  "Open in a window (close it to go back to the notification area)": "ウィンドウで開く（閉じると通知領域に戻ります）",
+  "Use them from a desktop shortcut, a Stream Deck, AutoHotkey or a terminal (start hesper://record). A recording started by a link is always announced.": "デスクトップのショートカット、Stream Deck、AutoHotkey、ターミナル（start hesper://record）から使えます。リンクで開始した録音は必ず通知されます。",
+  "Started by a hesper:// link (a shortcut, a Stream Deck…).": "hesper:// リンク（ショートカット、Stream Deck など）で開始されました。",
+  "For a calendar Hesper can't read from Outlook: Google Calendar (Settings → your calendar → “Secret address in iCal format”), the new Outlook (Settings → Calendar → Shared calendars → Publish), iCloud… Only this link is read, every 15 minutes.": "Hesper が Outlook から読めないカレンダー用：Google カレンダー（設定 → カレンダー →「iCal 形式の非公開 URL」）、新しい Outlook（設定 → 予定表 → 共有予定表 → 公開）、iCloud など。このリンクだけを 15 分ごとに読み込みます。"
  },
  "zh-Hans": {
   "Meeting notes that never leave your PC.": "会议笔记永不离开你的电脑。",
@@ -327,6 +343,10 @@
   "Try": "试试",
   "Notifications are turned off for Hesper in Windows, so you won't see these.": "Windows 中已关闭 Hesper 的通知，因此你不会看到它们。",
   "Notifications are turned off in Windows, so you won't see these.": "Windows 中已关闭通知，因此你不会看到它们。",
-  "Windows only lists Hesper's notifications in the notification center — no pop-up.": "Windows 只在通知中心列出 Hesper 的通知，不会弹出。"
+  "Windows only lists Hesper's notifications in the notification center — no pop-up.": "Windows 只在通知中心列出 Hesper 的通知，不会弹出。",
+  "Open in a window (close it to go back to the notification area)": "在窗口中打开（关闭后回到通知区域）",
+  "Use them from a desktop shortcut, a Stream Deck, AutoHotkey or a terminal (start hesper://record). A recording started by a link is always announced.": "可从桌面快捷方式、Stream Deck、AutoHotkey 或终端（start hesper://record）使用。通过链接开始的录音总会发出通知。",
+  "Started by a hesper:// link (a shortcut, a Stream Deck…).": "由 hesper:// 链接（快捷方式、Stream Deck 等）开始。",
+  "For a calendar Hesper can't read from Outlook: Google Calendar (Settings → your calendar → “Secret address in iCal format”), the new Outlook (Settings → Calendar → Shared calendars → Publish), iCloud… Only this link is read, every 15 minutes.": "用于 Hesper 无法从 Outlook 读取的日历：Google 日历（设置 → 你的日历 →“iCal 格式的私密地址”）、新版 Outlook（设置 → 日历 → 共享日历 → 发布）、iCloud…… 只读取此链接，每 15 分钟一次。"
  }
 }

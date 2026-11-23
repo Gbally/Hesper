@@ -65,7 +65,7 @@ sealed class Recorder : IDisposable
                 {
                     Paths.WriteLog($"recording one app's sound only ({names[0]}, process {pid})");
                     // An app only sends sound while it plays: the gaps are filled to keep one timeline
-                    system = new Track(new ProcessLoopbackCapture(pid), Path.Combine(Folder, "system.wav"), clock, fillGaps: true);
+                    system = new Track(new ProcessLoopbackCapture(pid), Path.Combine(Folder, "system.wav"), Recorded, fillGaps: true);
                     system.Start();  // now: if the app's sound can't be captured, all the PC's is
                     appStarted = true;
                 }
@@ -89,7 +89,7 @@ sealed class Recorder : IDisposable
             keepAlive = new WasapiOut(speaker, AudioClientShareMode.Shared, true, 100);
             keepAlive.Init(new SilenceProvider(loopback.WaveFormat));
             keepAlive.Play();
-            system = new Track(loopback, Path.Combine(Folder, "system.wav"), clock);
+            system = new Track(loopback, Path.Combine(Folder, "system.wav"), Recorded);
         }
         catch (Exception e)
         {
@@ -99,7 +99,7 @@ sealed class Recorder : IDisposable
         {
             var microphone = Device(devices, DataFlow.Capture, micName);
             Paths.WriteLog($"recording the microphone {microphone.FriendlyName}");
-            mic = new Track(new WasapiCapture(microphone, true, 100), Path.Combine(Folder, "mic.wav"), clock);
+            mic = new Track(new WasapiCapture(microphone, true, 100), Path.Combine(Folder, "mic.wav"), Recorded);
         }
         catch (Exception e)
         {
@@ -113,7 +113,46 @@ sealed class Recorder : IDisposable
         mic?.Start();
     }
 
-    public TimeSpan Elapsed => clock.Elapsed;
+    // Paused: nothing is written, and the time spent paused is left out of the timeline (both tracks
+    // shift by it, so they stay aligned and the transcript has no gap), as on the Mac.
+    readonly object pauseLock = new();
+    double pausedTotal;     // seconds paused before the current pause
+    double? pausedSince;    // the clock when the current pause began
+
+    /// Seconds recorded so far (pauses left out): the position in the audio files.
+    double Recorded()
+    {
+        lock (pauseLock)
+        {
+            var now = clock.Elapsed.TotalSeconds;
+            return now - pausedTotal - (pausedSince is double p ? now - p : 0);
+        }
+    }
+
+    public TimeSpan Elapsed => TimeSpan.FromSeconds(Recorded());
+
+    public bool Paused { get { lock (pauseLock) return pausedSince != null; } }
+
+    public void Pause()
+    {
+        lock (pauseLock)
+        {
+            if (pausedSince != null) return;
+            pausedSince = clock.Elapsed.TotalSeconds;
+        }
+        foreach (var t in new[] { mic, system }) if (t != null) t.Paused = true;
+    }
+
+    public void Resume()
+    {
+        lock (pauseLock)
+        {
+            if (pausedSince is not double p) return;
+            pausedTotal += clock.Elapsed.TotalSeconds - p;
+            pausedSince = null;
+        }
+        foreach (var t in new[] { mic, system }) if (t != null) t.Paused = false;
+    }
 
     /// How loud each track is now (RMS of the last chunk, 0…1); null when that track isn't recorded.
     public float? MicLevel => mic?.Level;
@@ -170,20 +209,21 @@ sealed class Recorder : IDisposable
         readonly BufferedWaveProvider buffer;
         readonly ISampleProvider converted;
         readonly WaveFileWriter writer;
-        readonly System.Diagnostics.Stopwatch clock;
+        readonly Func<double> recorded;  // seconds recorded so far (pauses left out)
         readonly float[] chunk = new float[Rate];
         readonly TaskCompletionSource stopped = new();
         readonly bool fillGaps;
         bool started;
         long written;  // samples
         public volatile float Level;
+        public volatile bool Paused;
         public double LastSound;  // seconds
 
-        public Track(IWaveIn capture, string path, System.Diagnostics.Stopwatch clock, bool fillGaps = false)
+        public Track(IWaveIn capture, string path, Func<double> recorded, bool fillGaps = false)
         {
             this.fillGaps = fillGaps;
             this.capture = capture;
-            this.clock = clock;
+            this.recorded = recorded;
             buffer = new BufferedWaveProvider(capture.WaveFormat)
             {
                 BufferDuration = TimeSpan.FromSeconds(10), DiscardOnBufferOverflow = true, ReadFully = false,
@@ -210,17 +250,18 @@ sealed class Recorder : IDisposable
 
         void OnData(object? sender, WaveInEventArgs e)
         {
+            if (Paused) { Level = 0; return; }  // nothing written while paused
             if (!started)
             {
                 started = true;
-                var lead = (int)(clock.Elapsed.TotalSeconds * Rate);  // silence before this device's first sound
+                var lead = (int)(recorded() * Rate);  // silence before this device's first sound
                 if (lead > 0) { writer.WriteSamples(new float[lead], 0, lead); written += lead; }
             }
             if (fillGaps)
             {
                 // Silence while the app played nothing: what's missing before this chunk (beyond half a second)
                 var incoming = (long)((double)e.BytesRecorded / capture.WaveFormat.AverageBytesPerSecond * Rate);
-                var missing = (long)(clock.Elapsed.TotalSeconds * Rate) - incoming - written;
+                var missing = (long)(recorded() * Rate) - incoming - written;
                 if (missing > Rate / 2) { var pad = (int)Math.Min(missing, int.MaxValue); writer.WriteSamples(new float[pad], 0, pad); written += pad; }
             }
             buffer.AddSamples(e.Buffer, 0, e.BytesRecorded);

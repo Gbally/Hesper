@@ -53,6 +53,7 @@ static class Meetings
             ["hasAudio"] = HasAudio(folder),
             ["error"] = error,
             ["actions"] = notes?["actions"]?.DeepClone() ?? new JsonArray(),
+            ["decisions"] = notes?["decisions"]?.DeepClone() ?? new JsonArray(),  // for the week's recap
             ["done"] = new JsonArray(Done(folder).Select(i => (JsonNode)i).ToArray()),
             ["template"] = notes?["template"]?.GetValue<string>() ?? info?["template"]?.GetValue<string>(),
             ["later"] = File.Exists(Path.Combine(folder, "notes_later.json")),
@@ -105,6 +106,7 @@ static class Meetings
                 lines.Add(new JsonObject
                 {
                     ["start"] = u?["start"]?.GetValue<double>() ?? 0,
+                    ["end"] = u?["end"]?.GetValue<double>() ?? 0,  // talk time
                     ["speaker"] = u?["speaker"]?.GetValue<string>() ?? "",
                     ["text"] = u?["text"]?.GetValue<string>() ?? "",
                 });

@@ -25,7 +25,11 @@ sealed class AppModel
     public event Action? OpenWelcomeWindow;
     public event Action? QuitRequested;
     public event Action? HotkeyChanged;
-    public event Action<string>? BriefRequested;  // the brief of a calendar meeting about to start, in the popover
+    /// A view of the home page to show (the popover's, or the detached window's): "home", "todos",
+    /// "week", "brief/KEY" (a calendar meeting about to start).
+    public event Action<string>? ShowView;
+    public event Action? DetachRequested;
+    public event Action<bool>? KeepOnTopChanged;
 
     /// Kind: process, import, summarize, later (notes when the PC is free), copy (notes with another
     /// model, in a copy), rename, render, ask, model, check. Model: the notes model for this job only.
@@ -53,6 +57,13 @@ sealed class AppModel
     readonly HashSet<string> briefed = [];
     JsonArray? meetingsCache;
     DateTime meetingsRead;
+    // While recording: the moments marked, the notes typed (meeting.json "marks", "my_notes")
+    readonly List<double> marks = [];
+    string liveNotes = "";
+    // The calendar link (ICS): {count} or {error}, and when it was last read
+    JsonObject? calendarLinkStatus;
+    DateTime calendarLinkRead = DateTime.MinValue;
+    public readonly MomentPlayer Player = new();
 
     // A recording that goes on after the meeting (MeetingOverWatch on the Mac)
     const double QuietAsk = 10 * 60, QuietStop = 30 * 60, QuietAfterSignal = 5 * 60, AfterCall = 10 * 60;
@@ -70,13 +81,14 @@ sealed class AppModel
         calls.CallStarted += CallStarted;
         calls.CallEnded += CallEnded;
         minute.Tick += (_, _) => EveryMinute();
-        second.Tick += (_, _) => { if (Recorder != null) { CheckEventEnd(Recorder); CheckMeetingOver(Recorder); } };
+        second.Tick += (_, _) => { if (Recorder is { Paused: false } r) { CheckEventEnd(r); CheckMeetingOver(r); } };  // not while paused
         minute.Start();
         second.Start();
         Updater.CleanUp();
         PinModels();
+        Player.Changed += Emit;
         var first = new System.Windows.Forms.Timer { Interval = 5000 };
-        first.Tick += (_, _) => { first.Dispose(); ResumeUnprocessed(); EveryMinute(); };
+        first.Tick += (_, _) => { first.Dispose(); ResumeUnprocessed(); EveryMinute(); _ = RefreshCalendarLink(force: true); };
         first.Start();
     }
 
@@ -103,6 +115,9 @@ sealed class AppModel
             ["template"] = recordingTemplate,
             ["event"] = recordingEvent?.ToJson(),
             ["asking"] = overQuestion is { } q ? new JsonObject { ["key"] = q.Key, ["args"] = new JsonArray(q.Args.Select(a => (JsonNode)a).ToArray()) } : null,
+            ["paused"] = r.Paused,
+            ["marks"] = marks.Count,
+            ["notes"] = liveNotes,
         } : null,
         ["starting"] = starting,
         ["stopping"] = stopping,
@@ -112,7 +127,7 @@ sealed class AppModel
             ["waiting"] = queue.Count, ["remaining"] = Remaining(),
             ["question"] = j.Kind == "ask" ? j.Args.Last() : null, ["file"] = j.Kind == "import" ? Path.GetFileName(j.Args[1]) : null,
         } : null,
-        ["busy"] = new JsonArray(queue.Append(current).OfType<Job>().Where(x => x.Kind is not ("ask" or "model" or "check" or "import"))
+        ["busy"] = new JsonArray(queue.Append(current).OfType<Job>().Where(x => x.Kind is not ("ask" or "model" or "check" or "import" or "followup"))
                                       .Select(x => (JsonNode)Path.GetFileName(x.Folder)).ToArray()),
         ["answer"] = answer?.DeepClone(),
         ["modelJob"] = modelJob?.DeepClone(),
@@ -129,6 +144,10 @@ sealed class AppModel
         ["memory"] = Settings.Memory is { } w && w.Model == (w.Speech ? SpeechModel : NotesModel)
             ? new JsonObject { ["model"] = w.Model, ["name"] = ModelName(w.Model), ["speech"] = w.Speech, ["failed"] = w.Failed } : null,
         ["notificationProblem"] = Identity.NotificationProblem(),
+        ["betterModel"] = BetterModel(),
+        ["calendarLink"] = calendarLinkStatus?.DeepClone(),
+        ["playing"] = Player.Playing,
+        ["detached"] = Settings.Detached,
         ["oneDrive"] = new JsonArray(Storage.OneDriveAccounts().Select(a => (JsonNode)new JsonObject { ["name"] = a.Name, ["path"] = a.Path }).ToArray()),
         ["outlook"] = Share.OutlookPath() != null,
         ["home"] = Paths.Home,
@@ -162,7 +181,7 @@ sealed class AppModel
         var next = calendar.Current() ?? calendar.Upcoming(30).FirstOrDefault();
         return new JsonObject
         {
-            ["available"] = OutlookCalendar.Available, ["installed"] = OutlookCalendar.Installed, ["on"] = Settings.UseCalendar, ["error"] = calendar.Error,
+            ["available"] = OutlookCalendar.Available || Settings.CalendarLink.Length > 0, ["outlook"] = OutlookCalendar.Available, ["installed"] = OutlookCalendar.Installed, ["on"] = Settings.UseCalendar, ["error"] = calendar.Error,
             ["next"] = next?.ToJson(), ["nextBrief"] = next != null ? Brief(next) : null,
             ["today"] = new JsonArray(calendar.Today().Select(e => (JsonNode)e.ToJson()).ToArray()),
             ["recordingEvent"] = recordingEvent?.ToJson(),
@@ -253,7 +272,8 @@ sealed class AppModel
 
     /// Commands that only read: the others may change the meetings, read again then.
     static readonly HashSet<string> ReadOnly = ["state", "meeting", "search", "samples", "i18n", "catalog", "devices", "voices",
-                                                "engineSize", "syncService", "notesModels", "refreshCalendar", "openMeeting", "openSettings"];
+                                                "engineSize", "syncService", "notesModels", "refreshCalendar", "openMeeting", "openSettings",
+                                                "pause", "mark", "liveNotes", "playMoment", "stopMoment", "detach", "keepOnTop", "dismissModelTip"];
 
     public JsonNode? Handle(string cmd, JsonObject a)
     {
@@ -268,6 +288,29 @@ sealed class AppModel
             case "record": StartRecording(S("template")); return null;
             case "stop": StopRecording(B("discard")); return null;
             case "keepRecording": KeepRecording(); return null;
+            case "pause": TogglePause(); return null;
+            case "mark": MarkMoment(); return null;
+            case "liveNotes": SetLiveNotes(S("text")); return null;
+            case "followup": if (Folder() is { } fu) Enqueue(new("followup", fu, ["followup", fu])); return null;
+            case "playMoment":
+                if (Folder() is { } pm) Player.Toggle(S("key"), pm, a["from"]?.GetValue<double>() ?? 0, a["length"]?.GetValue<double>() ?? 25);
+                return null;
+            case "stopMoment": Player.Stop(); return null;
+            case "detach": DetachRequested?.Invoke(); return null;
+            case "keepOnTop":
+                Settings.DetachedOnTop = B("on");
+                Settings.Save();
+                KeepOnTopChanged?.Invoke(Settings.DetachedOnTop);
+                Emit();
+                return null;
+            case "useCalendarLink":
+                Settings.CalendarLink = S("link").Trim();
+                Settings.Save();
+                calendarLinkStatus = null;
+                _ = RefreshCalendarLink(force: true);
+                Emit();
+                return null;
+            case "dismissModelTip": Settings.ModelTipDismissed = S("repo"); Settings.Save(); Emit(); return null;
             case "meeting": return Meetings.Detail(Settings.NotesFolder, S("id"));
             case "openMeeting": OpenMeetingWindow?.Invoke(S("id")); return null;
             case "openSettings": OpenSettingsWindow?.Invoke(S("pane")); return null;
@@ -283,6 +326,7 @@ sealed class AppModel
                     if (a["done"] is JsonArray ticks) Meetings.SetAllDone(en, ticks.Select(t => t!.GetValue<int>()));
                     // The name in meeting.json too, so transcribing again keeps it (as on the Mac)
                     if (notes["title"]?.GetValue<string>() is { Length: > 0 } named) Meetings.SetInfo(en, "title", named);
+                    if (notes["my_notes"] is JsonValue mine) Meetings.SetInfo(en, "my_notes", mine.GetValue<string>());  // Regenerate uses them
                     Enqueue(new("render", en, ["render", en]));
                 }
                 return null;
@@ -394,9 +438,14 @@ sealed class AppModel
         if (n.UseCalendar != Settings.UseCalendar) calendar.SetEnabled(n.UseCalendar);
         // only changeStorage moves the notes
         (n.NotesFolder, n.Storage, n.OneDrivePath, n.CustomFolderPath) = (Settings.NotesFolder, Settings.Storage, Settings.OneDrivePath, Settings.CustomFolderPath);
+        // and the ones the app keeps itself (the page's copy may be older)
+        (n.Detached, n.DetachedOnTop, n.DetachedBounds, n.WeeklyRecapSent, n.Memory, n.ModelTipDismissed, n.CalendarLink) =
+            (Settings.Detached, Settings.DetachedOnTop, Settings.DetachedBounds, Settings.WeeklyRecapSent, Settings.Memory, Settings.ModelTipDismissed, Settings.CalendarLink);
+        var calendarSwitched = n.UseCalendar != Settings.UseCalendar;
         Settings = n;
         Settings.Save();
         if (hotkey) HotkeyChanged?.Invoke();
+        if (calendarSwitched) _ = RefreshCalendarLink(force: true);
         Emit();
     }
 
@@ -491,9 +540,9 @@ sealed class AppModel
         else StartRecording("");
     }
 
-    public void StartRecording(string template, bool auto = false) => _ = StartRecordingAsync(template, auto);
+    public void StartRecording(string template, bool auto = false, string title = "") => _ = StartRecordingAsync(template, auto, title);
 
-    async Task StartRecordingAsync(string template, bool auto)
+    async Task StartRecordingAsync(string template, bool auto, string title)
     {
         if (Recorder != null || starting || stopping || !Ready) return;
         starting = true;
@@ -516,6 +565,9 @@ sealed class AppModel
         recordingTemplate = template.Length > 0 ? template : Settings.Template;
         Meetings.SetInfo(folder, "template", recordingTemplate);
         if (ev != null) { Meetings.SetInfo(folder, "title", ev.Title); Meetings.SetInfo(folder, "calendar", ev.ToJson()); }
+        if (title.Trim().Length > 0) Meetings.SetInfo(folder, "title", title.Trim());
+        marks.Clear();
+        liveNotes = "";
         recordingEvent = ev;
         endReminderSent = false;
         notices.Clear();
@@ -775,6 +827,11 @@ sealed class AppModel
                 modelJob = new JsonObject { ["check"] = result != null ? JsonNode.Parse(result) : null, ["repo"] = job.Model,
                                             ["error"] = r.Ok ? null : r.ErrorTail, ["speech"] = job.Args.Contains("speech") };
                 return;
+            case "followup":  // the e-mail, written: a draft to the attendees (a failure only says so)
+                if (r.Ok && result != null && JsonNode.Parse(result)?["text"]?.GetValue<string>() is { Length: > 0 } mail)
+                    FollowUpDraft(job.Folder, mail);
+                else Notify?.Invoke(T("Couldn't write the e-mail."), memoryFailure ?? (r.ErrorTail.Length > 0 ? r.ErrorTail : T("Processing failed.")), null);
+                return;
             case "import":  // an audio file or a transcript: a new meeting, as a recording's
                 if (r.Ok && done != null && Directory.Exists(done))
                 {
@@ -885,6 +942,8 @@ sealed class AppModel
     {
         if (Settings.DueReminders) DueReminders();
         if (Settings.Briefs && Settings.UseCalendar && Ready) CheckBriefs();
+        CheckWeeklyRecap();
+        _ = RefreshCalendarLink(force: false);
         if (DateTime.Now - lastCleanup > TimeSpan.FromHours(1))
         {
             lastCleanup = DateTime.Now;
@@ -938,7 +997,7 @@ sealed class AppModel
             Notify?.Invoke(T("In %@ min: %@", minutes, e.Title),
                            (n == 0 ? T("No open to-dos from last time") : n == 1 ? T("1 open to-do from last time") : T("%@ open to-dos from last time", n))
                            + ". " + T("Click to review."),
-                           () => BriefRequested?.Invoke(key));
+                           () => ShowView?.Invoke("brief/" + key));
         }
     }
 
@@ -1064,13 +1123,200 @@ sealed class AppModel
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            Notify?.Invoke(T("Couldn't copy the meeting: %@", e.Message), "", null);
+            Notify?.Invoke("Hesper", T("Couldn't copy the meeting: %@", e.Message), null);
             return;
         }
         var template = Meetings.Detail(Settings.NotesFolder, id)?["template"]?.GetValue<string>();
         if (template != null) Meetings.SetInfo(copy, "template", template);
         Meetings.SetInfo(copy, "label", n == 1 ? name : $"{name} {n}");
         Enqueue(new("copy", copy, ["summarize", copy], Model: repo));
+    }
+
+    // MARK: 0.7.2: pause, marks, typed notes, follow-up e-mail, the week, the calendar link, links, a better model
+
+    public void TogglePause()
+    {
+        if (Recorder is not { } r) return;
+        if (r.Paused) r.Resume(); else r.Pause();
+        Emit();
+    }
+
+    /// The moment just said matters (the button, Ctrl+Alt+M, hesper://mark): saved in meeting.json
+    /// at once (recorded time); the notes then cover the minute before it.
+    public void MarkMoment()
+    {
+        if (Recorder is not { Paused: false } r) return;
+        marks.Add(Math.Round(r.Elapsed.TotalSeconds, 1));
+        Meetings.SetInfo(r.Folder, "marks", new JsonArray(marks.Select(m => (JsonNode)m).ToArray()));
+        System.Media.SystemSounds.Asterisk.Play();
+        Emit();
+    }
+
+    /// Notes typed while recording (the page sends them a second after the last key).
+    void SetLiveNotes(string text)
+    {
+        if (Recorder is not { } r) return;
+        liveNotes = text;
+        Meetings.SetInfo(r.Folder, "my_notes", text);
+    }
+
+    /// The follow-up e-mail written by the engine: "Subject: …" then the text, as a draft to the
+    /// meeting's attendees in the usual e-mail app.
+    void FollowUpDraft(string folder, string mail)
+    {
+        var lines = mail.Replace("\r", "").Split('\n').ToList();
+        var subject = T("Follow-up: %@", Meetings.TitleOf(folder));
+        if (lines.Count > 0 && Regex.Match(lines[0], @"^\s*(Subject|Objet|Asunto|Assunto|件名|主题)\s*[:：]\s*(.+)$", RegexOptions.IgnoreCase) is { Success: true } m)
+        {
+            subject = m.Groups[2].Value.Trim();
+            lines.RemoveAt(0);
+        }
+        var body = string.Join("\n", lines).Trim();
+        var detail = Meetings.Detail(Settings.NotesFolder, Path.GetFileName(folder));
+        Share.Email(Settings.EmailApp, Settings.GmailAccount, detail != null ? Share.Attendees(detail) : [], subject, body);
+    }
+
+    /// My to-dos: the owner's words include my first name (as the pages' mine()).
+    bool Mine(JsonNode? action)
+    {
+        var me = Settings.MyName.Trim().ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
+        var owner = (action?["owner"]?.GetValue<string>() ?? "").ToLowerInvariant();
+        return me.Length > 0 && Regex.Split(owner, @"[\s,&+]+").Contains(me);
+    }
+
+    /// Friday from 16:00 (or Saturday, Sunday when missed): once a week, a notification with the
+    /// week's meetings and to-dos, if there were meetings; a click opens the recap.
+    void CheckWeeklyRecap()
+    {
+        var now = DateTime.Now;
+        if (!Settings.WeeklyRecap || !Ready) return;
+        if (!((now.DayOfWeek == DayOfWeek.Friday && now.Hour >= 16) || now.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)) return;
+        var key = $"{System.Globalization.ISOWeek.GetYear(now)}-{System.Globalization.ISOWeek.GetWeekOfYear(now)}";
+        if (Settings.WeeklyRecapSent == key) return;
+        Settings.WeeklyRecapSent = key;
+        Settings.Save();
+        var monday = now.Date.AddDays(-(((int)now.DayOfWeek + 6) % 7));
+        var week = AllMeetings.Where(m => m["hasNotes"]?.GetValue<bool>() == true && DateTime.TryParse(m["date"]?.GetValue<string>(), out var d)
+                                          && d >= monday && d < monday.AddDays(7)).ToList();
+        if (week.Count == 0) return;
+        static bool Overdue(JsonNode a) => a["due_date"]?.GetValue<string>() is { } due && DateTime.TryParse(due, out var day) && day.Date < DateTime.Today;
+        IEnumerable<(JsonNode A, bool Done)> Todos(IEnumerable<JsonObject> ms) => ms.SelectMany(m =>
+        {
+            var ticked = m["done"]!.AsArray().Select(x => x!.GetValue<int>()).ToHashSet();
+            return m["actions"]!.AsArray().Select((a, i) => (A: a!, Done: ticked.Contains(i)));
+        }).Where(t => Mine(t.A));
+        var mineOpen = Todos(week).Count(t => !t.Done && !Overdue(t.A));
+        var overdue = Todos(AllMeetings).Count(t => !t.Done && Overdue(t.A));
+        var done = Todos(week).Count(t => t.Done);
+        var parts = new List<string> { mineOpen == 1 ? T("1 to-do for you") : T("%@ to-dos for you", mineOpen) };
+        if (overdue > 0) parts.Add(T("%@ overdue", overdue));
+        if (done > 0) parts.Add(T("%@ done", done));
+        Notify?.Invoke(week.Count == 1 ? T("Your week: 1 meeting") : T("Your week: %@ meetings", week.Count),
+                       string.Join(" · ", parts) + ". " + T("Click to see the recap."), () => ShowView?.Invoke("week"));
+    }
+
+    /// The calendar link (Google's secret address, the new Outlook's published calendar…), read by
+    /// the engine at most every 15 minutes (now when force); its events join Outlook's.
+    async Task RefreshCalendarLink(bool force)
+    {
+        var link = Settings.CalendarLink.Trim();
+        if (link.Length == 0 || !Settings.UseCalendar)
+        {
+            calendar.LinkEvents = [];
+            calendarLinkStatus = null;
+            return;
+        }
+        if (!Ready || (!force && DateTime.Now - calendarLinkRead < TimeSpan.FromMinutes(15))) return;
+        calendarLinkRead = DateTime.Now;
+        string? result = null;
+        await EngineRunner.Hesper(["calendar", link, "--days", "2"], line => { if (line.StartsWith("@@result ")) result = line[9..]; });
+        if (link != Settings.CalendarLink.Trim()) return;  // changed meanwhile
+        JsonNode? reply = null;
+        try { reply = result != null ? JsonNode.Parse(result) : null; } catch (JsonException) { }
+        if (reply?["error"]?.GetValue<string>() is { } error) calendarLinkStatus = new JsonObject { ["error"] = error };
+        else if (reply?["events"] is not JsonArray list) calendarLinkStatus = new JsonObject { ["error"] = T("Couldn't read the calendar link.") };
+        else
+        {
+            var me = Settings.MyName.Trim();
+            var events = new List<CalendarEvent>();
+            foreach (var e in list)
+            {
+                if (!DateTimeOffset.TryParse(e?["start"]?.GetValue<string>(), out var start) || !DateTimeOffset.TryParse(e?["end"]?.GetValue<string>(), out var end)) continue;
+                var people = (e!["attendees"] as JsonArray ?? []).Select(x => (Name: x?["name"]?.GetValue<string>() ?? "", Email: x?["email"]?.GetValue<string>() ?? ""))
+                    .Where(x => me.Length == 0 || !x.Name.Equals(me, StringComparison.OrdinalIgnoreCase)).ToList();  // you're not one of "the others"
+                events.Add(new CalendarEvent(e["title"]?.GetValue<string>() is { Length: > 0 } t ? t : T("Meeting"), start.LocalDateTime, end.LocalDateTime,
+                                             e["organizer"]?.GetValue<string>() ?? "", people, e["online"]?.GetValue<bool>() == true,
+                                             e["id"]?.GetValue<string>(), e["series"]?.GetValue<string>()));
+            }
+            calendar.LinkEvents = events;
+            calendarLinkStatus = new JsonObject { ["count"] = events.Count };
+        }
+        Emit();
+    }
+
+    /// hesper://record · start · stop · toggle · pause · resume · mark · note?text=… · open · todos · week
+    /// (a desktop shortcut, a Stream Deck, AutoHotkey, a terminal…). As the Mac's handleLink.
+    public void HandleLink(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var u) || !u.Scheme.Equals("hesper", StringComparison.OrdinalIgnoreCase)) return;
+        var action = (u.Host.Length > 0 ? u.Host : u.AbsolutePath).Trim('/').ToLowerInvariant();
+        var query = System.Web.HttpUtility.ParseQueryString(u.Query);
+        if (!Settings.AllowLinks && action is not ("open" or "todos" or "week"))
+        {
+            Notify?.Invoke("Hesper", T("hesper:// links are turned off (Settings → General)."), null);
+            return;
+        }
+        switch (action)
+        {
+            case "record" or "start":
+                if (Recorder != null || starting || !Ready) return;
+                StartRecording("", title: query["title"] ?? "");
+                // Anything on this PC can open a link: a recording started by one is always announced
+                Notify?.Invoke(T("Recording started"), T("Started by a hesper:// link (a shortcut, a Stream Deck…)."), null);
+                break;
+            case "stop": StopRecording(); break;
+            case "toggle": ToggleRecording(); break;
+            case "pause": if (Recorder is { Paused: false }) TogglePause(); break;
+            case "resume": if (Recorder is { Paused: true }) TogglePause(); break;
+            case "mark": MarkMoment(); break;
+            case "note":
+                if (Recorder == null || query["text"] is not { Length: > 0 } text) return;
+                SetLiveNotes(liveNotes + (liveNotes.Length == 0 || liveNotes.EndsWith('\n') ? "" : "\n") + text);
+                Emit();
+                break;
+            case "open": ShowView?.Invoke("home"); break;
+            case "todos": ShowView?.Invoke("todos"); break;
+            case "week": ShowView?.Invoke("week"); break;
+            default: Notify?.Invoke("Hesper", T("Unknown link: %@", url), null); break;
+        }
+    }
+
+    /// The catalog now recommends a better notes model for this PC than the one in use (more
+    /// "quality"): offered on Home until switched or turned down, as on the Mac.
+    JsonObject? BetterModel()
+    {
+        if (!Ready || Recorder != null || Settings.LlmModel.Length == 0) return null;
+        var picked = catalog.Notes.FirstOrDefault(m => m.Repo == Settings.LlmModel);
+        var best = catalog.Recommended(false);
+        if (picked == null || best == null || best.Repo == picked.Repo || best.Quality <= picked.Quality || Settings.ModelTipDismissed == best.Repo) return null;
+        return new JsonObject
+        {
+            ["repo"] = best.Repo, ["name"] = best.Name, ["size"] = best.SizeGB, ["current"] = picked.Name,
+            ["installed"] = InstalledModels().ContainsKey(best.Repo),
+        };
+    }
+
+    public void SetDetached(bool on)
+    {
+        Settings.Detached = on;
+        Settings.Save();
+        Emit();
+    }
+
+    public void SetDetachedBounds(Rectangle r)
+    {
+        Settings.DetachedBounds = [r.X, r.Y, r.Width, r.Height];
+        Settings.Save();
     }
 
     // MARK: updates

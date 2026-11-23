@@ -87,6 +87,14 @@ const ICONS = {
   cpu: '<rect x="4" y="4" width="8" height="8" rx="1"/><path d="M6 1.5v2.5M10 1.5v2.5M6 12v2.5M10 12v2.5M1.5 6h2.5M1.5 10h2.5M12 6h2.5M12 10h2.5"/>',
   voices: '<circle cx="6" cy="5.5" r="2.5"/><path d="M1.5 14c.6-2.5 2.4-4 4.5-4s3.9 1.5 4.5 4M11.5 4.5a3 3 0 0 1 0 4.5M13.5 2.5a6 6 0 0 1 0 8.5"/>',
   info: '<circle cx="8" cy="8" r="6.5"/><path d="M8 7.5v4M8 5v.2"/>',
+  window: '<rect x="1.5" y="3" width="13" height="10.5" rx="1.5"/><path d="M1.5 6h13"/><path d="M11 8.5v3M9.5 10h3"/>',
+  pin: '<path d="M6 1.8h4l-.6 4.2 2.6 2.4H4l2.6-2.4zM8 8.4v5.8"/>',
+  pause: '<path d="M5.5 3.5v9M10.5 3.5v9"/>',
+  play: '<path d="M5 3.2v9.6L12.5 8z" fill="currentColor"/>',
+  stop: '<rect x="4" y="4" width="8" height="8" rx="1" fill="currentColor"/>',
+  star: '<path d="M8 1.8l1.9 3.9 4.2.6-3 3 .7 4.2L8 11.5l-3.8 2 .7-4.2-3-3 4.2-.6z" fill="currentColor" stroke="none"/>',
+  pencil: '<path d="M10.5 2.5l3 3-8 8H2.5v-3z"/>',
+  quote: '<path d="M3 4h10v6.5H8L5 13v-2.5H3z"/>',
 };
 const icon = (name, cls = "icon") => `<svg class="${cls}" viewBox="0 0 16 16">${ICONS[name]}</svg>`;
 
@@ -142,19 +150,25 @@ function ask(title, body, ok, danger = false, cancel = tr("Cancel")) {
 // ============================================================ the popover
 let tab = "today", search = "", hits = null, homeView = "home", template = null, todoMine = true, todoShowDone = false;
 
+const detachedWindow = () => route().arg === "detached";
+
 function renderHome() {
   document.title = "Hesper";
   const upd = state?.update?.available;
+  const onTop = state?.settings?.DetachedOnTop;
   $("#app").innerHTML = `
   <div class="popover">
     <div class="pop-header">
       ${homeView !== "home" ? `<button class="icon-btn" id="back" title="${L("Back")}">‹</button>` : appIcon(30)}
       <div class="grow">
-        ${homeView === "todos" ? `<div class="headline">${L("To-dos")}</div>` : homeView.startsWith("brief/") ? `<div class="headline">${L("Still open")}</div>` : `
+        ${homeView === "todos" ? `<div class="headline">${L("To-dos")}</div>` : homeView === "week" ? `<div class="headline">${L("This week")}</div>` : homeView.startsWith("brief/") ? `<div class="headline">${L("Still open")}</div>` : `
         <div class="headline">${esc(new Date().toLocaleDateString(locale(), { weekday: "long" }).replace(/^./, c => c.toUpperCase()))}</div>
         <div class="caption">${esc(new Date().toLocaleDateString(locale(), { day: "numeric", month: "long" }))}</div>`}
       </div>
       ${upd ? `<button class="badge" id="update" title="${L("A new version of Hesper is available")}">${L("Update")}</button>` : ""}
+      ${homeView !== "home" ? "" : detachedWindow()
+        ? `<button class="icon-btn ${onTop ? "on" : ""}" id="pin" title="${L(onTop ? "Stop keeping this window on top" : "Keep this window on top")}">${icon("pin")}</button>`
+        : `<button class="icon-btn" id="detach" title="${L("Open in a window (close it to go back to the notification area)")}">${icon("window")}</button>`}
       <button class="icon-btn" id="gear" title="${L("Settings")}">${icon("gear")}</button>
       <button class="icon-btn" id="more" title="${L("More")}">${icon("more")}</button>
     </div>
@@ -168,10 +182,13 @@ function renderHome() {
   $("#back") && ($("#back").onclick = () => { homeView = "home"; renderHome(); });
   $("#update") && ($("#update").onclick = () => call("openSettings", { pane: "about" }));
   $("#gear").onclick = () => call("openSettings", { pane: "" });
+  $("#detach") && ($("#detach").onclick = () => call("detach"));
+  $("#pin") && ($("#pin").onclick = async () => { await call("keepOnTop", { on: !onTop }); await refresh(); renderHome(); });
   $("#more").onclick = e => { e.stopPropagation(); openMenu($("#more"), [
     { label: tr("Transcribe an audio file…"), action: () => call("importFile", { transcript: false, title: tr("Choose a meeting recording to transcribe") }), disabled: !state.ready },
     { label: tr("Import a transcript…"), action: () => call("importFile", { transcript: true, title: tr("Import a transcript…") }), disabled: !state.ready },
     { label: tr("Open notes folder"), action: () => call("openFolder") },
+    { label: tr("This week"), action: () => { homeView = "week"; renderHome(); } },
     "-",
     { label: tr("Quit Hesper"), action: () => call("quit") },
   ]); };
@@ -184,7 +201,7 @@ function renderHome() {
     };
     q.onkeydown = e => {
       if (e.key === "Enter" && search.trim()) call("ask", { q: search.trim() });
-      if (e.key === "Escape") { if (search) { q.value = ""; q.oninput(); } else call("hide"); }
+      if (e.key === "Escape") { if (search) { q.value = ""; q.oninput(); } else if (!detachedWindow()) call("hide"); }
     };
     drawTabs();
   }
@@ -209,11 +226,13 @@ function drawContent() {
   if (!el || !state) return;
   const parts = [];
   if (homeView === "todos") parts.push(allTodos());
+  else if (homeView === "week") parts.push(weekView());
   else if (homeView.startsWith("brief/")) parts.push(briefView(homeView.slice(6)));
   else {
     if (!state.ready) parts.push(setupCard());
     else parts.push(hero());
     if (state.memory) parts.push(memoryCard(state.memory));
+    if (state.betterModel && !state.recording) parts.push(modelTipCard(state.betterModel));
     if (state.laterPending && !state.recording) parts.push(laterCard());
     if (state.job && !["ask", "model", "check"].includes(state.job.kind)) parts.push(jobCard(state.job));
     if (state.answer) parts.push(answerCard(state.answer));
@@ -223,10 +242,65 @@ function drawContent() {
     else if (tab === "todos") parts.push(todoList());
     else parts.push(today());
   }
+  // Your notes being typed while recording: the box drawn again keeps the text, the cursor and the focus
+  const typing = document.activeElement?.id === "live-notes" ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
   el.innerHTML = parts.join("");
   el.onclick = onContentClick;
   el.oncontextmenu = onContentMenu;
+  el.oninput = e => { if (e.target.id === "live-notes") typed(e.target.value); };
+  if (typing && $("#live-notes")) { $("#live-notes").focus(); $("#live-notes").setSelectionRange(...typing); }
   drawLive();
+}
+
+// ---- 0.7.2: notes typed while recording, the better-model tip, the week
+let liveNotes = "", liveFor = null, liveTimer = null;
+/// The notes typed for this recording (the app's copy when the page opens on it).
+function liveText(r) {
+  if (liveFor !== r.id) { liveFor = r.id; liveNotes = r.notes ?? ""; }
+  return liveNotes;
+}
+/// Saved a second after the last key (meeting.json "my_notes").
+function typed(text) {
+  liveNotes = text;
+  clearTimeout(liveTimer);
+  liveTimer = setTimeout(flushNotes, 1000);
+}
+function flushNotes() {
+  if (!liveTimer) return;
+  clearTimeout(liveTimer); liveTimer = null;
+  call("liveNotes", { text: liveNotes });
+}
+
+function modelTipCard(b) {
+  return `<div class="card"><div class="row"><span style="color:var(--accent)">${icon("star")}</span><b>${esc(tr("Better notes with %@", b.name))}</b></div>
+    <div class="caption">${esc(pc(tr("It's now recommended for this Mac instead of %@: more accurate to-dos, dates and summaries.", b.current)))}</div>
+    <div class="row"><button class="btn small primary" data-act="switchModel">${esc(b.installed ? tr("Switch") : tr("Download and switch (%@ GB)", b.size.toFixed(1)))}</button>
+      <button class="btn small" data-act="notNow">${L("Not now")}</button></div></div>`;
+}
+
+/// This week (Monday to Sunday): the numbers, overdue and open to-dos of mine, decisions, the meetings (WeekView on the Mac).
+function weekView() {
+  const now = new Date(), today0 = new Date(now.toDateString());
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (now.getDay() + 6) % 7);
+  const next = new Date(monday); next.setDate(monday.getDate() + 7);
+  const week = state.meetings.filter(m => m.hasNotes && new Date(m.date) >= monday && new Date(m.date) < next);
+  const ids = new Set(week.map(m => m.id));
+  const overdueOf = a => a.due_date && new Date(a.due_date + "T00:00") < today0;
+  const mineAll = state.meetings.flatMap(m => (m.actions || []).map((a, i) => ({ a, i, m, done: m.done.includes(i) }))).filter(x => mine(x.a));
+  const open = mineAll.filter(x => ids.has(x.m.id) && !x.done && !overdueOf(x.a)).sort((x, y) => (x.a.due_date ?? "9999") < (y.a.due_date ?? "9999") ? -1 : 1);
+  const overdue = mineAll.filter(x => !x.done && overdueOf(x.a));
+  const done = mineAll.filter(x => ids.has(x.m.id) && x.done).length;
+  const minutes = Math.floor(week.reduce((t, m) => t + (m.duration || 0), 0) / 60);
+  const long = d => d.toLocaleDateString(locale(), { day: "numeric", month: "long", year: "numeric" });
+  const stat = (v, l) => `<div class="stat"><div class="value mono">${esc(v)}</div><div class="caption">${esc(l)}</div></div>`;
+  const decided = week.filter(m => m.decisions?.length);
+  return `<div class="caption">${esc(long(monday))} – ${esc(long(new Date(next - 1)))}</div>
+    <div class="stats">${stat(week.length, tr(week.length === 1 ? "meeting" : "meetings"))}${stat(minutes >= 60 ? `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")}` : `${minutes} min`, tr("in meetings"))}${stat(open.length, tr("to-dos for you"))}${stat(done, tr("done"))}</div>
+    ${overdue.length ? `<div><div class="section-title">${L("Overdue")}</div>${todoRows(overdue)}</div>` : ""}
+    <div><div class="section-title">${L("Your open to-dos")}</div>${open.length ? todoRows(open) : `<div class="empty">${L("Nothing open for you from this week's meetings.")}</div>`}</div>
+    ${decided.length ? `<div><div class="section-title">${L("Decisions")}</div>${decided.map(m => `<div class="caption" style="font-weight:600;margin:6px 0 2px">${esc(meetingTitle(m))}</div>
+      <ul class="bullets">${m.decisions.map(d => `<li><span>${esc(d)}</span></li>`).join("")}</ul>`).join("")}</div>` : ""}
+    ${week.length ? `<div><div class="section-title">${L("Meetings")}</div>${meetingList(week, "")}</div>` : ""}`;
 }
 
 function setupCard() {
@@ -245,13 +319,19 @@ function hero() {
   const r = state.recording;
   if (state.stopping || (r && stoppingId === r.id)) return stoppingCard();
   if (r) return `<div class="card">
-      <div class="row"><div class="rec-dot"></div><div class="headline grow">${L("Recording now")}</div><div class="title2 mono" id="clock">${fmtDuration(r.elapsed)}</div></div>
+      <div class="row"><div class="rec-dot ${r.paused ? "paused" : ""}"></div><div class="headline grow">${L(r.paused ? "Paused" : "Recording now")}</div><div class="title2 mono" id="clock">${fmtDuration(r.elapsed)}</div></div>
       ${r.event ? `<div class="caption ellipsis">${esc(tr("%@ · until %@", r.event.title, fmtClock(r.event.end)))}</div>` : ""}
       ${r.asking ? `<div class="ask-over"><b>${esc(tr(r.asking.key, ...r.asking.args))}</b>
         <button class="btn small" data-act="keep">${L("Keep recording")}</button></div>` : ""}
       <div class="meter">${icon("mic")}<span class="label">${L("Your mic")}</span><div class="bar"><div id="lv-mic"></div></div></div>
       <div class="meter">${icon("speaker")}<span class="label">${L("Meeting")}</span><div class="bar"><div id="lv-sys"></div></div></div>
       ${r.notices.map(n => `<div class="notice">${icon("warn")}<span>${esc(notice(n))}</span></div>`).join("")}
+      <div class="row rec-tools">
+        <button class="btn grow" data-act="pause" title="${L(r.paused ? "Go on recording" : "Stop recording for a while; the pause is left out of the notes")}">${icon(r.paused ? "play" : "pause")}${L(r.paused ? "Resume" : "Pause")}</button>
+        <button class="btn grow" data-act="mark" ${r.paused ? "disabled" : ""} title="${esc(state.settings.MarkHotkey ? tr("Mark this moment as important (%@)", state.settings.MarkHotkey) : tr("Mark this moment as important"))}">${icon("star")}${esc(r.marks ? tr("Mark · %@", r.marks) : tr("Mark"))}</button>
+      </div>
+      <textarea class="field live-notes" id="live-notes" rows="3" placeholder="${L("Your notes (optional)…")}">${esc(liveText(r))}</textarea>
+      <div class="caption2" style="margin-top:-6px">${L("Used for the summary. A line starting with [ ] becomes your to-do.")}</div>
       <button class="btn primary large" data-act="stop">■ ${L("Stop & create notes")}</button>
       <button class="plain" style="color:var(--danger);align-self:center" data-act="discard">${L("Discard this recording")}</button>
     </div>`;
@@ -286,6 +366,7 @@ let stoppingId = null, discarding = false;
 const stoppingCard = () => `<div class="card"><div class="row"><div class="spinner"></div>
   <div class="headline grow">${L(discarding ? "Discarding the recording…" : "Stopping the recording…")}</div></div></div>`;
 function stopFromPage(discard) {
+  flushNotes();  // the last words typed, before the recording closes
   stoppingId = state.recording?.id ?? null;
   discarding = discard;
   drawContent();
@@ -316,7 +397,8 @@ function drawLive(live) {
 function jobCard(job) {
   const m = state.meetings.find(x => x.id === job.id);
   const name = m ? meetingTitle(m) : tr("meeting");
-  const title = job.kind === "import" ? tr("Processing %@", job.file) : job.kind === "process" ? tr("Processing “%@”", name) : tr("Updating “%@”", name);
+  const title = job.kind === "import" ? tr("Processing %@", job.file) : job.kind === "process" ? tr("Processing “%@”", name)
+    : job.kind === "followup" ? tr("E-mail for “%@”", name) : tr("Updating “%@”", name);
   const left = job.remaining == null ? "" : job.remaining < 60 ? tr("less than a minute left") : tr("about %@ min left", Math.round(job.remaining / 60));
   return `<div class="card"><div class="row"><div class="grow ellipsis" style="font-weight:500">${esc(title)}</div>
     ${job.waiting ? `<span class="caption2">${esc(tr("+%@ waiting", job.waiting))}</span>` : ""}</div>
@@ -457,6 +539,10 @@ async function onContentClick(e) {
   else if (act === "welcome") call("openWelcome");
   else if (act === "writeNow") call("writeLaterNow");
   else if (act === "keep") call("keepRecording");
+  else if (act === "pause") call("pause");
+  else if (act === "mark") call("mark");
+  else if (act === "switchModel") { const b = state.betterModel; call("useModel", { repo: b.repo, speech: false }); call("dismissModelTip", { repo: b.repo }); }
+  else if (act === "notNow") call("dismissModelTip", { repo: state.betterModel.repo });
   else if (act === "models") call("openSettings", { pane: "models" });
   else if (act === "dismissMemory") call("dismissMemory");
   else if (act === "allTodos") { homeView = "todos"; renderHome(); }
@@ -493,7 +579,7 @@ async function onContentMenu(e) {
 }
 
 // ============================================================ a meeting
-let meeting = null, view = "notes", speakers = null, editing = null, drawnAt = "", meetingSeen = "";
+let meeting = null, view = "notes", speakers = null, editing = null, drawnAt = "", meetingSeen = "", whereOpen = new Set(), playingSeen = null;
 
 async function loadMeeting(id) {
   meeting = await call("meeting", { id });
@@ -537,6 +623,7 @@ function renderMeeting() {
     "-",
     { label: tr("Name the speakers…"), action: () => { view = "speakers"; renderMeeting(); }, disabled: !n || busy },
     { label: tr("Email the notes…"), action: () => call("email", { id: m.id, subject: tr("Notes: %@", meetingTitle(m)), labels: shareLabels() }), disabled: !n },
+    { label: tr("Write a follow-up e-mail…"), action: () => call("followup", { id: m.id }), disabled: !n || busy || state.job?.kind === "followup" },
     { label: tr("Export folder (Markdown)"), action: () => call("export", { id: m.id, title: tr("Export") }), disabled: !n },
     { label: tr("Copy the notes"), action: () => call("copyNotes", { id: m.id, labels: shareLabels() }), disabled: !n },
     "-",
@@ -568,6 +655,10 @@ function renderMeeting() {
     if (act === "speakers") { view = "speakers"; renderMeeting(); }
     if (act === "namesRight") call("confirmNames", { id: m.id });
     if (act === "writeNow") call("writeLaterNow");
+    const where = e.target.closest("[data-where]")?.dataset.where;
+    if (where != null) { e.preventDefault(); whereOpen.has(+where) ? whereOpen.delete(+where) : whereOpen.add(+where); renderMeeting(); }
+    const listen = e.target.closest("[data-listen]");
+    if (listen) { e.preventDefault(); call("playMoment", { id: m.id, key: listen.dataset.listen, from: +listen.dataset.from, length: +listen.dataset.length }); }
   };
   body.onchange = async e => {
     const box = e.target.closest("[data-todo]");
@@ -608,11 +699,62 @@ function notesHtml(m, busy) {
   if (n.actions?.length) out.push(`<section><div class="section-title">${L("To-do")}</div>${n.actions.map((a, i) => {
     const done = m.done.includes(i);
     return `<label class="todo ${done ? "done" : ""}"><input type="checkbox" data-todo="${i}" ${done ? "checked" : ""}>
-      <span class="grow"><div class="task">${esc(a.task)}</div><div class="row" style="gap:6px"><span class="caption">${esc(a.owner)}</span>${dueBadge(a, done)}</div></span></label>`;
+      <span class="grow"><div class="task">${esc(a.task)}${a.typed ? ` <span class="secondary" title="${L("From your notes typed during the meeting")}">${icon("pencil", "icon small")}</span>` : ""}</div>
+        <div class="row" style="gap:6px"><span class="caption">${esc(a.owner)}</span>${dueBadge(a, done)}
+          ${a.at && m.transcript.length ? `<button class="plain where" data-where="${i}" title="${L("Where was this said?")}">${icon("quote", "icon small")}</button>` : ""}</div>
+        ${a.at && whereOpen.has(i) ? whereSaid(m, a.at) : ""}</span></label>`;
   }).join("")}</section>`);
   for (const s of n.sections ?? []) out.push(bullets(s.title, s.items));
   out.push(bullets("Open questions", n.questions));
+  out.push(highlightsHtml(m));
+  if (n.my_notes) out.push(`<section><div class="section-title">${L("My notes")}</div><div class="my-notes">${esc(n.my_notes)}</div></section>`);
+  out.push(talkTimeHtml(m));
   return out.join("");
+}
+
+/// "00:12:30" / "12:30" → seconds.
+function secondsOf(stamp) {
+  const p = String(stamp ?? "").split(":").map(Number);
+  return p.length < 2 || p.some(isNaN) ? null : p.reduce((x, y) => x * 60 + y, 0);
+}
+/// ▶ Listen / ■ Stop: both tracks from a little before the moment (the app plays them).
+const listenButton = (key, from, length) => `<button class="plain listen" data-listen="${esc(key)}" data-from="${from}" data-length="${length}">${
+  icon(state.playing === key ? "stop" : "play", "icon small")}${L(state.playing === key ? "Stop" : "Listen")}</button>`;
+
+/// Under a to-do: the line it was noted from and the 2 before it, and ▶ to hear that moment (WhereSaid on the Mac).
+function whereSaid(m, at) {
+  const sec = secondsOf(at);
+  if (sec == null) return "";
+  let i = -1;
+  m.transcript.forEach((l, k) => { if (l.start <= sec + 0.5) i = k; });
+  const lines = i < 0 ? m.transcript.slice(0, 1) : m.transcript.slice(Math.max(0, i - 2), i + 1);
+  return `<div class="moment">${lines.map((l, k) => `<div class="${k === lines.length - 1 ? "" : "secondary"}"><b>${esc(l.speaker)}:</b> ${esc(l.text)}</div>`).join("")}
+    <div class="row caption2"><span class="mono">${esc(at)}</span>${m.hasAudio ? listenButton(`${m.id}@${at}`, lines[0]?.start ?? sec, 25) : ""}</div></div>`;
+}
+
+/// The moments marked while recording, with what was said in the minute before each.
+function highlightsHtml(m) {
+  const hs = m.notes?.highlights ?? [];
+  if (!hs.length) return "";
+  return `<section><div class="section-title">${L("Marked moments")}</div>${hs.map(h => {
+    const sec = h.seconds ?? secondsOf(h.at), first = secondsOf(h.lines?.[0]?.at);
+    const from = first ?? Math.max(0, (sec ?? 0) - 30);
+    return `<div class="moment"><div class="row"><span style="color:var(--accent)">${icon("star", "icon small")}</span><b class="mono grow">${esc(h.at)}</b>
+        ${m.hasAudio && sec != null ? listenButton(`${m.id}★${h.at}`, from, Math.max(15, sec - from + 8)) : ""}</div>
+      ${h.lines?.length ? h.lines.map(l => `<div><b>${esc(l.speaker)}:</b> ${esc(l.text)}</div>`).join("") : `<div class="caption">${L("Nothing was said just before.")}</div>`}</div>`;
+  }).join("")}</section>`;
+}
+
+/// Who spoke how long: a bar each, % of the speech (2 people or more).
+function talkTimeHtml(m) {
+  const t = {};
+  for (const l of m.transcript) if (l.end > l.start) t[l.speaker] = (t[l.speaker] ?? 0) + l.end - l.start;
+  const list = Object.entries(t).sort((a, b) => b[1] - a[1]);
+  const total = list.reduce((x, [, v]) => x + v, 0);
+  if (list.length < 2 || !total) return "";
+  return `<section><div class="section-title">${L("Talk time")}</div>${list.map(([who, sec]) =>
+    `<div class="talk"><span class="ellipsis">${esc(who)}</span><div class="bar"><div style="width:${Math.max(1, sec / list[0][1] * 100)}%"></div></div>
+      <span class="caption mono">${Math.round(sec / total * 100)} %</span></div>`).join("")}</section>`;
 }
 
 /// Editing the notes (as the Mac's: name, summary, decisions, to-dos); notes.md is then rebuilt.
@@ -623,6 +765,8 @@ function drawEditor(body) {
     <div><div class="section-title">${L("Meeting name")}</div><input class="field" id="ed-title" value="${esc(e.title ?? "")}"></div>
     <div><div class="section-title">${L("Summary")}</div><textarea class="field" id="ed-summary" rows="6">${lines(e.summary)}</textarea></div>
     <div><div class="section-title">${L("Decisions")}</div><textarea class="field" id="ed-decisions" rows="4">${lines(e.decisions)}</textarea></div>
+    <div><div class="section-title">${L("My notes")}</div><textarea class="field" id="ed-mine" rows="4">${esc(e.my_notes ?? "")}</textarea>
+      <div class="caption">${L("Your own notes on this meeting. “Regenerate notes” (⋯) uses them for the summary.")}</div></div>
     <div><div class="section-title">${L("To-dos")}</div>
       ${(e.actions ?? []).map((a, i) => `<div class="row edit-todo" data-i="${i}">
         <input class="field" style="width:130px" data-f="owner" placeholder="${L("Owner")}" value="${esc(a.owner)}">
@@ -636,6 +780,7 @@ function drawEditor(body) {
     e.title = $("#ed-title").value.trim();
     e.summary = $("#ed-summary").value.split("\n").map(s => s.trim()).filter(Boolean);
     e.decisions = $("#ed-decisions").value.split("\n").map(s => s.trim()).filter(Boolean);
+    e.my_notes = $("#ed-mine").value.trim();
     body.querySelectorAll(".edit-todo").forEach(r => {
       const a = e.actions[+r.dataset.i];
       const due = r.querySelector('[data-f="due"]').value.trim();
@@ -654,7 +799,7 @@ function drawEditor(body) {
     // The ticks follow their to-dos (removed or added ones shift the others)
     const done = e.actions.map((a, k) => a.was != null && meeting.done.includes(a.was) ? k : -1).filter(k => k >= 0);
     const actions = e.actions.map(({ was, ...a }) => a);
-    await call("saveNotes", { id: meeting.id, notes: { title: e.title, summary: e.summary, decisions: e.decisions, actions }, done });
+    await call("saveNotes", { id: meeting.id, notes: { title: e.title, summary: e.summary, decisions: e.decisions, actions, my_notes: e.my_notes }, done });
     editing = null;
     loadMeeting(meeting.id);
   };
@@ -796,8 +941,8 @@ async function drawPane() {
           tr("Other languages show in English. Meeting notes follow the meeting's language (Settings → Notes).")) +
     group(tr("You"), [item(L("Your name"), text("MyName", s.MyName))], tr("Used for your voice in transcripts and to find the to-dos that are yours.")) +
     group(tr("Shortcut and startup"), [
-      item(L("Start / stop recording"), `<button class="btn hotkey" id="hotkey">${esc(hotkeyRecording ? tr("Type the shortcut…") : s.Hotkey || tr("None"))}</button>
-        ${s.Hotkey ? `<button class="icon-btn" id="hotkey-clear" title="${L("Remove")}">✕</button>` : ""}`),
+      item(L("Start / stop recording"), hotkeyField("Hotkey", s.Hotkey)),
+      item(L("Mark an important moment"), hotkeyField("MarkHotkey", s.MarkHotkey), L("Works only while recording: the notes then cover what was said in the minute before.")),
       item(P("Open Hesper at login"), toggle("@login", state.launchAtLogin)),
     ]) +
     group(tr("Email"), [
@@ -805,6 +950,11 @@ async function drawPane() {
                                                      ["gmail", "Gmail"], ["outlookWeb", tr("Outlook on the web")]], s.EmailApp)),
       ...(s.EmailApp === "gmail" ? [item(L("Gmail address (optional, if you use several)"), text("GmailAccount", s.GmailAccount))] : []),
       ...(s.EmailApp === "gmail" || s.EmailApp === "outlookWeb" ? [caption(tr("The draft opens in your browser, so the notes are sent to that website to create it."))] : []),
+    ]) +
+    group(tr("Shortcuts and automation"), [
+      item(L("Allow hesper:// links to control recording"), toggle("AllowLinks", s.AllowLinks)),
+      caption(tr("Use them from a desktop shortcut, a Stream Deck, AutoHotkey or a terminal (start hesper://record). A recording started by a link is always announced.")),
+      `<div class="item mono caption selectable links ${s.AllowLinks ? "" : "off"}">${["record", "stop", "pause", "resume", "mark", "note?text=…", "todos", "week"].map(a => `hesper://${a}`).join("<br>")}</div>`,
     ]);
   else if (pane === "recording") {
     devices ??= await call("devices") ?? { mics: [], speakers: [] };
@@ -822,10 +972,16 @@ async function drawPane() {
       group(tr("Calendar"), [
         item(L("Use my calendar for meeting names & attendees"), toggle("UseCalendar", s.UseCalendar && state.calendar?.available, !state.calendar?.available),
              L("Names meetings and their attendees, and reminds you of open to-dos before the next one.")),
-        caption(state.calendar?.available ? tr("Read from Outlook on this PC (the classic app: the new Outlook can't be read by other apps).")
+        caption(state.calendar?.outlook ? tr("Read from Outlook on this PC (the classic app: the new Outlook can't be read by other apps).")
               : state.calendar?.installed ? tr("Outlook is installed but has no account set up on this PC.")
               : tr("Needs the classic Outlook app on this PC (the new Outlook can't be read by other apps).")),
         ...(state.calendar?.error ? [`<div class="item error-text">${esc(state.calendar.error)}</div>`] : []),
+        `<div class="item"><input class="field grow" id="calendar-link" placeholder="https://calendar.google.com/…/basic.ics" value="${esc(s.CalendarLink)}" spellcheck="false">
+          <button class="btn small" data-do="calendarLink">${L("Use")}</button>${s.CalendarLink ? `<button class="btn small" data-do="calendarLinkRemove">${L("Remove")}</button>` : ""}</div>`,
+        ...(state.calendarLink?.count != null ? [`<div class="item caption" style="color:var(--ok)">${esc(state.calendarLink.count === 1 ? tr("Read: 1 event from yesterday to the day after tomorrow.")
+                                                  : tr("Read: %@ events from yesterday to the day after tomorrow.", state.calendarLink.count))}</div>`]
+            : state.calendarLink?.error ? [`<div class="item caption" style="color:var(--warn)">${esc(tr("Couldn't read it: %@", state.calendarLink.error))}</div>`] : []),
+        caption(tr("For a calendar Hesper can't read from Outlook: Google Calendar (Settings → your calendar → “Secret address in iCal format”), the new Outlook (Settings → Calendar → Shared calendars → Publish), iCloud… Only this link is read, every 15 minutes.")),
       ]) +
       group(tr("Languages"), [
         `<div class="item"><div class="label">${L("Languages spoken in your meetings")}</div></div>`,
@@ -930,6 +1086,7 @@ async function drawPane() {
     item(L("When the calendar meeting is over (“Stop recording?”)"), toggle("EndReminders", s.EndReminders)),
     item(L("5 min before a meeting: what's still open from last time"), toggle("Briefs", s.Briefs && state.calendar?.available && s.UseCalendar, !(state.calendar?.available && s.UseCalendar))),
     item(L("The day before my to-dos are due"), toggle("DueReminders", s.DueReminders)),
+    item(L("Friday afternoon: my week's meetings and to-dos"), toggle("WeeklyRecap", s.WeeklyRecap)),
     item(L("Try"), `<button class="btn small" data-do="testNotification">${L("Send a test notification")}</button>`),
   ], tr("Windows shows them in the notification area; to change how, see Windows Settings → System → Notifications."));
   else if (pane === "privacy") {
@@ -1049,6 +1206,11 @@ function bindPane(el) {
     if (d === "showHome") call("showHome");
     if (d === "checkUpdate") call("checkUpdate");
     if (d === "notificationSettings") call("openNotificationSettings");
+    if (d === "calendarLink" || d === "calendarLinkRemove") {
+      const link = d === "calendarLink" ? $("#calendar-link").value.trim() : "";
+      await call("useCalendarLink", { link });
+      await refresh(); drawPane();
+    }
     if (d === "testNotification") { await call("testNotification"); setTimeout(() => refresh().then(drawPane), 2000); }  // Windows lists Hesper once it has shown one
     if (d === "installUpdate") call("installUpdate");
     if (d === "reinstall" && confirm(tr("Reinstall the engine? Downloaded models are kept."))) call("startSetup");
@@ -1067,8 +1229,10 @@ function bindPane(el) {
     if (t.id === "add-window") { await save({ LaterWindows: [...s.LaterWindows, [18 * 60, 20 * 60]] }); drawPane(); }
     const rw = t.closest("[data-remove-window]")?.dataset.removeWindow;
     if (rw != null) { await save({ LaterWindows: s.LaterWindows.filter((_, i) => i !== +rw) }); drawPane(); }
-    if (t.id === "hotkey") { hotkeyRecording = true; drawPane(); }
-    if (t.id === "hotkey-clear") { await save({ Hotkey: "" }); drawPane(); }
+    const hk = t.closest("[data-hotkey]")?.dataset.hotkey;
+    if (hk) { hotkeyRecording = hk; drawPane(); }
+    const hkClear = t.closest("[data-hotkey-clear]")?.dataset.hotkeyClear;
+    if (hkClear) { await save({ [hkClear]: "" }); drawPane(); }
     if (t.id === "uninstall") {
       const notes = $("#remove-notes").checked;
       $("#uninstall-ask").innerHTML = `<div class="item" style="flex-direction:column;align-items:stretch;gap:8px"><b>${P("Remove Hesper from this Mac?")}</b>
@@ -1091,10 +1255,15 @@ addEventListener("keydown", async e => {
   if (!e.ctrlKey && !e.altKey && !e.metaKey) return;
   const key = e.code.startsWith("Key") ? e.code.slice(3) : e.code.startsWith("Digit") ? e.code.slice(5) : e.key.length === 1 ? e.key.toUpperCase() : e.code;
   const combo = [e.ctrlKey && "Ctrl", e.altKey && "Alt", e.shiftKey && "Shift", e.metaKey && "Win", key].filter(Boolean).join("+");
+  const which = hotkeyRecording;
   hotkeyRecording = false;
-  await save({ Hotkey: combo });
+  await save({ [which]: combo });
   drawPane();
 }, true);
+
+/// A shortcut's button (click, then type it) and ✕ to remove it.
+const hotkeyField = (key, value) => `<button class="btn hotkey" data-hotkey="${key}">${esc(hotkeyRecording === key ? tr("Type the shortcut…") : value || tr("None"))}</button>
+  ${value ? `<button class="icon-btn" data-hotkey-clear="${key}" title="${L("Remove")}">✕</button>` : ""}`;
 
 /// Where the notes go; with meetings already there, asks whether to move them (as the Mac does).
 async function changeStorage(storage, path = "") {
@@ -1229,15 +1398,16 @@ handlers.state = async data => {
     // Read the meeting again only when it changed; a job's progress on it only redraws it
     const seen = JSON.stringify([state.meetings.find(m => m.id === arg) ?? null, state.busy.includes(arg)]);
     if (seen !== meetingSeen) { meetingSeen = seen; loadMeeting(arg); }
-    else if (state.job?.id === arg && meeting && !editing && view === "notes") renderMeeting();
+    else if ((state.playing !== playingSeen || state.job?.id === arg) && meeting && !editing && view === "notes") renderMeeting();
+    playingSeen = state.playing;
   }
   else if (page === "welcome") drawWelcomeStatus();
-  else if (page === "settings" && ["models", "about", "privacy", "general"].includes(pane) && !document.activeElement?.matches("input:not([type=checkbox]):not([type=radio]), select")) drawPane();
+  else if (page === "settings" && ["models", "about", "privacy", "general", "recording"].includes(pane) && !document.activeElement?.matches("input:not([type=checkbox]):not([type=radio]), select")) drawPane();
 };
 handlers.live = data => drawLive(data);
 handlers.view = v => { if (route().page === "home") { homeView = v; renderHome(); } };
 addEventListener("hashchange", render);
-addEventListener("keydown", e => { if (e.key === "Escape" && route().page === "home" && !search) call("hide"); });
+addEventListener("keydown", e => { if (e.key === "Escape" && route().page === "home" && !search && !detachedWindow()) call("hide"); });
 
 (async () => {
   await refresh();
