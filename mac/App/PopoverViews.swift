@@ -9,8 +9,18 @@ enum Route: Equatable {
     case brief(CalendarEvent)
 }
 
+/// In the detached window (`Windows.showMain`) rather than the menu bar one.
+private struct DetachedKey: EnvironmentKey { static let defaultValue = false }
+extension EnvironmentValues {
+    var detached: Bool {
+        get { self[DetachedKey.self] }
+        set { self[DetachedKey.self] = newValue }
+    }
+}
+
 struct RootView: View {
     @EnvironmentObject var model: AppModel
+    var detached = false
     @State private var route: Route = .home
     @State private var window: NSWindow?
     @State private var closedAt: Date?
@@ -26,8 +36,10 @@ struct RootView: View {
             case .brief(let e): BriefView(event: e, route: $route)
             }
         }
-        .frame(width: 380, height: 580)
+        .frame(minWidth: detached ? 340 : 380, maxWidth: detached ? .infinity : 380,
+               minHeight: detached ? 440 : 580, maxHeight: detached ? .infinity : 580)
         .environment(\.locale, AppLanguage.locale)
+        .environment(\.detached, detached)
         .id(model.uiLanguage)
         .onAppear {
             model.reload()
@@ -36,17 +48,19 @@ struct RootView: View {
             takePendingRoute()
         }
         .onChange(of: model.pendingRoute) { _ in takePendingRoute() }
-        .background(WindowReader { window = $0 })
+        .background(WindowReader { window = $0; toDetached() })
         // The menu bar window keeps its page when it closes. Reopened while recording, it shows the
         // home page (the Stop button) — not the notes you were reading; else after a minute away.
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { n in
-            guard let w = window, n.object as? NSWindow === w else { return }
+            guard !detached, let w = window, n.object as? NSWindow === w else { return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {  // a dialog of ours also takes the focus: not closed
                 if !w.isVisible { closedAt = Date() }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { n in
-            guard let w = window, n.object as? NSWindow === w, let closed = closedAt else { return }
+            guard let w = window, n.object as? NSWindow === w else { return }
+            toDetached()
+            guard let closed = closedAt else { return }
             closedAt = nil
             if model.isRecording || Date().timeIntervalSince(closed) > 60 { route = .home }
             takePendingRoute()
@@ -74,6 +88,13 @@ struct WindowReader: NSViewRepresentable {
 }
 
 extension RootView {
+    /// The menu bar icon was clicked while the content is in its own window: show that one instead.
+    func toDetached() {
+        guard !detached, Windows.isDetached, let w = window, w.isVisible else { return }
+        w.close()
+        Windows.showMain(model)
+    }
+
     func takePendingRoute() {
         if let r = model.pendingRoute {
             route = r
@@ -185,6 +206,8 @@ struct HomeView: View {
     @State private var template: String?
     @State private var search = ""
     @State private var tab: Tab = .today
+    @Environment(\.detached) private var detached
+    @AppStorage("mainWindowOnTop") private var onTop = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -238,6 +261,15 @@ struct HomeView: View {
                 }
                 .buttonStyle(.plain)
                 .help("A new version of Hesper is available")
+            }
+            if detached {
+                Button { onTop.toggle(); Windows.setOnTop(onTop) } label: { Image(systemName: onTop ? "pin.fill" : "pin") }
+                    .buttonStyle(.borderless).tint(onTop ? Brand.accent : .secondary)
+                    .help(onTop ? tr("Stop keeping this window on top") : tr("Keep this window on top"))
+            } else {
+                Button { Windows.showMain(model) } label: { Image(systemName: "macwindow.badge.plus") }
+                    .buttonStyle(.borderless).tint(.secondary)
+                    .help("Open in a window (close it to go back to the menu bar)")
             }
             Button { Windows.showSettings(model) } label: { Image(systemName: "gearshape") }
                 .buttonStyle(.borderless).tint(.secondary).help("Settings")

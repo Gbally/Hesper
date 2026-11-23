@@ -165,3 +165,25 @@ views, importing audio files and transcripts. Not on Windows: Reminders, Apple N
 - Teams only: Windows 11's process loopback (ActivateAudioInterfaceAsync, VAD\Process_Loopback),
   gaps filled with silence; tested on a process playing a file, not yet in a Teams call.
 - Releases: scripts/release_windows.ps1 (see win/README.md).
+
+### Next: the detachable window (asked 2026-11-23, Mac side done)
+
+A tester asked for the tray window to stay open. Default behaviour is unchanged (the owner prefers
+it); an icon next to the gear moves the home view into a normal window. What the Mac does
+(`Windows.showMain` in mac/App/SettingsWindow.swift, header in mac/App/PopoverViews.swift), to mirror:
+
+- Popover header, home view only: a "detach" icon button left of the gear (Mac: SF Symbol
+  `macwindow.badge.plus`), tooltip "Open in a window (close it to go back to the menu bar)" — on
+  Windows add a Windows-only text in Ui/i18n-windows.json: "Open in a window (close it to go back to
+  the notification area)", translated in fr/es/pt/ja/zh-Hans.
+- Clicking it hides the popover and opens a `WebWindow` on "home" (the popover's page, same JS):
+  normal border, resizable (min ~340×440, default 400×600), in the taskbar and Alt-Tab, title
+  "Hesper", position/size remembered. One instance (`WebWindow.Find`).
+- In that window the detach icon is replaced by a pin toggle "Keep this window on top" / "Stop keeping
+  this window on top" (Mac texts, already translated) → `TopMost`, remembered.
+- While it is open, a click on the tray icon brings it forward (restore if minimised) instead of
+  opening the popover; the "back to home after a minute away" rule doesn't apply to it.
+- Closing it = back to the popover as today. Open at quit → reopened at next launch (not over the
+  welcome).
+- The page needs to know where it is (e.g. a `detached` flag in the state or the URL) to draw the pin
+  rather than the detach icon, and its layout must stretch with the window.

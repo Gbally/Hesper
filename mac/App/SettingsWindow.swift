@@ -92,6 +92,45 @@ enum Windows {
         present(others["welcome"]!)
     }
 
+    // MARK: The detached window
+
+    private static var main: NSWindow?
+    private static let openKey = "mainWindowOpen", onTopKey = "mainWindowOnTop"
+
+    /// Whether the menu bar content is in its own window (its button in the header): the menu bar
+    /// icon then brings that window forward instead of opening the small one.
+    static var isDetached: Bool { main != nil }
+
+    /// The menu bar content as a normal window: moved, resized, in the Dock and ⌘-Tab, optionally
+    /// kept on top. Closing it goes back to the menu bar window. Reopens at launch if it was open.
+    static func showMain(_ model: AppModel) {
+        if main == nil {
+            let w = make(title: "Hesper", size: NSSize(width: 380, height: 580),
+                         view: RootView(detached: true).environmentObject(model), autosave: "MainWindow")
+            w.contentMinSize = NSSize(width: 340, height: 440)
+            w.level = UserDefaults.standard.bool(forKey: onTopKey) ? .floating : .normal
+            NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: w, queue: .main) { _ in
+                Task { @MainActor in
+                    Windows.main = nil
+                    if AppModel.demo == nil { UserDefaults.standard.set(false, forKey: openKey) }
+                    NSApp.setActivationPolicy(.accessory)
+                }
+            }
+            main = w
+            if AppModel.demo == nil { UserDefaults.standard.set(true, forKey: openKey) }
+            NSApp.setActivationPolicy(.regular)
+        }
+        if main!.isMiniaturized { main!.deminiaturize(nil) }
+        present(main!)
+    }
+
+    static var wasDetached: Bool { UserDefaults.standard.bool(forKey: openKey) }
+
+    static func setOnTop(_ on: Bool) {
+        UserDefaults.standard.set(on, forKey: onTopKey)
+        main?.level = on ? .floating : .normal
+    }
+
     /// The menu bar content in a normal window (testing / screenshots: `--preview`).
     static func showPreview(_ model: AppModel) {
         if others["preview"] == nil {
@@ -121,7 +160,7 @@ enum Windows {
 
     private static func present(_ w: NSWindow) {
         // Opened from the menu bar window? Close it, so it doesn't linger behind the new window.
-        let managed = [settings].compactMap { $0 } + Array(meetings.values) + Array(others.values)
+        let managed = [settings, main].compactMap { $0 } + Array(meetings.values) + Array(others.values)
         if let key = NSApp.keyWindow, !managed.contains(where: { $0 === key }) { key.close() }
         NSApp.activate(ignoringOtherApps: true)
         w.makeKeyAndOrderFront(nil)

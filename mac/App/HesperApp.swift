@@ -32,6 +32,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             Windows.showSettings(model, tab: tab)
         }
         if args.contains("--preview") { Windows.showPreview(model) }
+        // Left in its own window last time: open it again (not in demo / screenshot runs).
+        if Windows.wasDetached, AppModel.demo == nil, !model.shouldWelcome { Windows.showMain(model) }
+        if args.contains("--window") { Windows.showMain(model) }  // testing
         // Testing: --welcome [page]
         if let i = args.firstIndex(of: "--welcome") {
             Windows.showWelcome(model, step: i + 1 < args.count ? Int(args[i + 1]) ?? 0 : 0)
@@ -68,6 +71,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
                 NSApp.terminate(nil)
             }
         }
+    }
+
+    /// The Dock icon (shown while the detached window is open) brings that window back.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if Windows.isDetached { Windows.showMain(model) }
+        return false
     }
 
     // Show our banners even while the app is active.
