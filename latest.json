@@ -1,7 +1,7 @@
 {
- "version": "0.7.0",
- "build": 138,
- "url": "https://github.com/Gbally/Hesper/releases/download/v0.7.0/Hesper-0.7.0.dmg",
- "sha256": "3bbb6b1164cccc92bfbd0687df7763bea7245d04d3ce3a6bf3a66074b18244f7",
- "notes": "Hesper: MeetScribe's new name and look. Each to-do is checked once more before it's listed. Overlapping voices no longer become extra speakers."
+ "version": "0.7.2",
+ "build": 151,
+ "url": "https://github.com/Gbally/Hesper/releases/download/v0.7.2/Hesper-0.7.2.dmg",
+ "sha256": "d486a0f484d6835d6132949a8b677039d4718719cc7139862003221527c93b18",
+ "notes": "Pause and resume a recording; mark important moments (\u2303\u2325M from any app) and type your own notes while recording. In each meeting: marked moments, talk time, and where each to-do was said, with the audio. A follow-up e-mail written for you, a Friday recap of your week, a calendar link (ICS) for Google Calendar or the new Outlook, hesper:// links for Shortcuts or Raycast, and the window can be detached and kept on top."
 }
