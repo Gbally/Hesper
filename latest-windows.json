@@ -1,7 +1,7 @@
 {
-    "version":  "0.7.1",
-    "build":  2,
-    "url":  "https://github.com/Gbally/Hesper/releases/download/v0.7.1/Hesper-0.7.1.exe",
-    "sha256":  "ab38bf65b934261f6c02ff41180538004e26135e653a197470fc978517a286e0",
-    "notes":  "Notes keep the Outlook meeting\u0027s name. Stop and Discard respond at once. Listen to each speaker\u0027s voice when naming them. Recordings not processed are finished at the next launch, and the PC stays awake while recording or writing notes. Notifications show from the first launch, in your language. Also: Keep recording, Regenerate in a copy with another model, e-mails to the attendees, memory warnings."
+    "version":  "0.7.2",
+    "build":  3,
+    "url":  "https://github.com/Gbally/Hesper/releases/download/v0.7.2/Hesper-0.7.2.exe",
+    "sha256":  "41721ae92e9dbb51833cbea9ae7d911efc827c15c4d340b98aea0c9dbde6a9bc",
+    "notes":  "Pause and resume a recording; mark important moments (Ctrl+Alt+M) and type your own notes while recording. In each meeting: marked moments, talk time, and where each to-do was said, with the audio. A follow-up e-mail written for you, a Friday recap of your week, a calendar link (ICS) for Google Calendar or the new Outlook, hesper:// links, and the window can stay open on its own."
 }
