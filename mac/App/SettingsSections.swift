@@ -166,6 +166,7 @@ struct CalendarRow: View {
             }
             Text("Outlook meetings appear once your work account is added to the Calendar app (System Settings → Internet Accounts).")
                 .font(.caption2).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
+            if model.settings.useCalendar { CalendarLinkRow().padding(.top, 6) }
         }
     }
 }
@@ -209,6 +210,7 @@ struct NotificationsSection: View {
             Toggle("Stop by itself when the meeting is over (long quiet, call ended)", isOn: $model.settings.stopWhenOver)
             Toggle("5 min before a meeting: what's still open from last time", isOn: $model.settings.briefs)
             Toggle("The day before my to-dos are due", isOn: $model.settings.dueReminders)
+            Toggle("Friday afternoon: my week's meetings and to-dos", isOn: $model.settings.weeklyRecap)
             if let problem = model.notificationProblem {
                 HStack(alignment: .top, spacing: 6) {
                     Image(systemName: "bell.slash.fill").foregroundColor(.orange)

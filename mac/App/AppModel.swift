@@ -11,10 +11,11 @@ enum Job: Equatable {
     case rename(Meeting.ID, [String: String])
     case resummarize(Meeting.ID)
     case ask(String)
+    case followUp(Meeting.ID)  // a follow-up e-mail written from the notes
 
     var meetingID: Meeting.ID? {
         switch self {
-        case .process(let id), .rename(let id, _), .resummarize(let id): return id
+        case .process(let id), .rename(let id, _), .resummarize(let id), .followUp(let id): return id
         case .processFile, .ask: return nil
         }
     }
@@ -23,7 +24,7 @@ enum Job: Equatable {
     var isNewMeeting: Bool {
         switch self {
         case .process, .processFile: return true
-        case .rename, .resummarize, .ask: return false
+        case .rename, .resummarize, .ask, .followUp: return false
         }
     }
 }
@@ -76,6 +77,7 @@ final class AppModel: ObservableObject {
         didSet {
             saveSettings()
             if settings.hotkey != oldValue.hotkey { HotkeyCenter.shared.register(settings.hotkey) }
+            if settings.markHotkey != oldValue.markHotkey, isRecording { HotkeyCenter.shared.register(settings.markHotkey, slot: 2) }
         }
     }
     @Published var meetings: [Meeting] = []
@@ -138,6 +140,14 @@ final class AppModel: ObservableObject {
     private var jobTranscribing = false  // the current job's step is a transcription
     private var endReminderSent = false
     private var over = MeetingOverWatch()
+
+    // During a recording: paused or not, the moments marked as important, the notes being typed.
+    @Published var isPaused = false
+    @Published var marks: [Double] = []
+    @Published var liveNotes = "" { didSet { if liveNotes != oldValue { saveLiveNotesSoon() } } }
+    private var liveNotesSave: DispatchWorkItem?
+    @Published var calendarLinkStatus: CalendarLinkStatus?  // Settings → Calendar link: read or not
+    var calendarLinkFetched = Date.distantPast
     private var autoStarted = false
     private var briefed = Set<String>()
     private var briefTimer: Timer?
@@ -243,13 +253,18 @@ final class AppModel: ObservableObject {
         HotkeyCenter.shared.action = { [weak self] in
             Task { @MainActor in self?.toggleRecording() }
         }
+        HotkeyCenter.shared.markAction = { [weak self] in
+            Task { @MainActor in self?.markMoment() }
+        }
         HotkeyCenter.shared.register(settings.hotkey)
         _ = MacUse.shared  // starts watching for the screen being locked
         briefTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             guard let model = self else { return }
             Task { @MainActor in
+                await model.refreshCalendarLink()
                 model.refreshCalendar()
                 model.checkBriefs()
+                model.checkWeeklyRecap()
                 model.cleanUpOldAudio()
                 model.writeLaterNotes()
                 await model.refreshCatalogDaily()
@@ -446,6 +461,10 @@ final class AppModel: ObservableObject {
                 recordingEvent = event
                 endReminderSent = false
                 over = MeetingOverWatch()
+                isPaused = false
+                marks = []
+                liveNotes = ""
+                HotkeyCenter.shared.register(settings.markHotkey, slot: 2)
                 recorder = rec
                 activeRecorder = rec
                 recordingID = folder.lastPathComponent
@@ -470,22 +489,65 @@ final class AppModel: ObservableObject {
         let id = rec.folder.lastPathComponent
         let duration = min(rec.elapsed, trimTo ?? .infinity)
         autoStarted = false
+        liveNotesSave?.cancel()
+        HotkeyCenter.shared.unregister(slot: 2)
+        let marked = marks.filter { $0 <= duration }
+        let typed = liveNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+        isPaused = false
         Task {
             await rec.stop()
             if let trimTo, !discard { rec.trim(to: trimTo) }
             recordingID = nil
             recordingEvent = nil
+            marks = []
+            liveNotes = ""
             if discard {
                 try? FileManager.default.trashItem(at: rec.folder, resultingItemURL: nil)
             } else {
                 if var info = readInfo(rec.folder) {
                     info.duration = duration
+                    info.marks = marked.isEmpty ? nil : marked
+                    info.myNotes = typed.isEmpty ? nil : typed
                     writeInfo(rec.folder, info)
                 }
                 enqueue(.process(id))
             }
             reload()
         }
+    }
+
+    /// Pause: nothing is recorded until Resume, and the pause is left out of the audio.
+    func togglePause() {
+        guard let rec = recorder else { return }
+        if rec.isPaused { rec.resume() } else { rec.pause() }
+        isPaused = rec.isPaused
+        elapsed = rec.elapsed
+    }
+
+    /// "This matters": the notes cover what was said in the minute before.
+    func markMoment() {
+        guard let rec = recorder, !rec.isPaused else { return }
+        marks.append((rec.elapsed * 10).rounded() / 10)
+        saveRecordingInfo()
+        show(tr("Moment marked"))
+        NSSound(named: "Tink")?.play()  // heard when marking from the shortcut, in another app
+    }
+
+    private func saveLiveNotesSoon() {
+        liveNotesSave?.cancel()
+        guard recorder != nil else { return }
+        let work = DispatchWorkItem { [weak self] in Task { @MainActor in self?.saveRecordingInfo() } }
+        liveNotesSave = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
+    }
+
+    /// The marks and typed notes so far, in meeting.json (kept if the app quits mid-meeting).
+    private func saveRecordingInfo() {
+        guard let rec = recorder, var info = readInfo(rec.folder) else { return }
+        let typed = liveNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+        info.marks = marks.isEmpty ? nil : marks
+        info.myNotes = typed.isEmpty ? nil : typed
+        writeInfo(rec.folder, info)
     }
 
     private func startMeters() {
@@ -499,6 +561,11 @@ final class AppModel: ObservableObject {
     private func tickMeters() {
         guard let rec = recorder else { return }
         elapsed = rec.elapsed
+        if rec.isPaused {  // nothing is recorded: no meters, no "is it over?"
+            micLevel = 0
+            systemLevel = 0
+            return
+        }
         // The calendar says the meeting ended 5 minutes ago: offer to stop.
         if let end = recordingEvent?.end, Date() > end.addingTimeInterval(300) {
             over.signal = over.signal ?? rec.elapsed
@@ -567,7 +634,7 @@ final class AppModel: ObservableObject {
             let result = await Engine.hesper(args) { [weak self] line in
                 if line.hasPrefix("@@memory ") {
                     self?.jobMemory = String(line.dropFirst(9))
-                } else if line.hasPrefix("@@result "), let data = line.dropFirst(9).data(using: .utf8) {
+                } else if line.hasPrefix("@@result "), case .ask = job, let data = line.dropFirst(9).data(using: .utf8) {
                     self?.askResult = try? JSONDecoder().decode(AskResult.self, from: data)
                 } else if line.hasPrefix("✅ Done"), let arrow = line.range(of: "→ ") {
                     // An imported file's meeting folder is only known from the engine's last line.
@@ -602,6 +669,8 @@ final class AppModel: ObservableObject {
             reload()
             if case .ask = job {
                 if !result.ok { askError = failure ?? (result.errorTail.isEmpty ? tr("Something went wrong.") : result.errorTail) }
+            } else if case .followUp(let id) = job {
+                if result.ok { emailFollowUp(id) } else { show(failure ?? tr("Couldn't write the e-mail.")) }
             } else {
                 // New meetings only: a regenerated one would overwrite what was edited in the notes app.
                 if result.ok, job.isNewMeeting { autoExport(finalFolder ?? lastDoneFolder) }
@@ -642,6 +711,8 @@ final class AppModel: ObservableObject {
             return (["summarize", folder(id).path], folder(id))
         case .ask(let question):
             return (["ask", "--json", question], nil)
+        case .followUp(let id):
+            return (["followup", folder(id).path], nil)  // no folder: a failure doesn't mark the meeting as failed
         }
     }
 
@@ -1103,7 +1174,9 @@ final class AppModel: ObservableObject {
         case "KEEP": keepRecording()
         case "DISCARD": stopRecording(discard: true)
         default:
-            if let meeting, meeting.hasPrefix("brief:") {
+            if meeting == "week" {
+                Windows.showWeek(self)
+            } else if let meeting, meeting.hasPrefix("brief:") {
                 if let e = briefEvents[String(meeting.dropFirst(6))] { Windows.showBrief(e, model: self) }
             } else if let meeting {
                 Windows.showMeeting(meeting, model: self)
@@ -1176,11 +1249,30 @@ final class AppModel: ObservableObject {
     // MARK: - Sharing
 
     /// Opens an email draft to the calendar attendees with the notes, in the chosen app.
-    func emailNotes(_ id: Meeting.ID) {
+    /// The follow-up e-mail (followup.txt, written by the engine) as a draft to the attendees.
+    func emailFollowUp(_ id: Meeting.ID) {
+        guard let m = meeting(id), var text = try? String(contentsOf: m.url("followup.txt")) else { return }
+        var subject = tr("Follow-up: %@", m.title)
+        if let first = text.components(separatedBy: "\n").first,
+           let r = first.range(of: #"^\s*(subject|objet|asunto|assunto|betreff|oggetto|件名|主题)\s*[:：]\s*"#,
+                               options: [.regularExpression, .caseInsensitive]) {
+            subject = String(first[r.upperBound...]).trimmingCharacters(in: .whitespaces)
+            text = text.components(separatedBy: "\n").dropFirst().joined(separator: "\n")
+        }
+        emailNotes(id, subject: subject, body: text.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    func writeFollowUp(_ id: Meeting.ID) {
+        guard meeting(id)?.notes != nil else { return }
+        enqueue(.followUp(id))
+        show(tr("Writing the e-mail…"))
+    }
+
+    func emailNotes(_ id: Meeting.ID, subject givenSubject: String? = nil, body givenBody: String? = nil) {
         guard let m = meeting(id) else { return }
         let to = (m.info?.calendar?.attendees ?? []).map(\.email).filter { !$0.isEmpty }.joined(separator: ",")
-        let subject = tr("Notes: %@", m.title)
-        let body = m.shareText
+        let subject = givenSubject ?? tr("Notes: %@", m.title)
+        let body = givenBody ?? m.shareText
         let app = settings.emailApp
 
         func open(_ url: URL?, withApp bundleID: String? = nil) {
@@ -1382,20 +1474,31 @@ final class AppModel: ObservableObject {
     }
 
     /// Saves the edit mode of a meeting at once: title + the whole to-do list.
-    func saveEdits(_ id: Meeting.ID, title: String, todos: [TodoDraft]) {
+    func saveEdits(_ id: Meeting.ID, title: String, todos: [TodoDraft], myNotes: String? = nil) {
         guard let m = meeting(id) else { return }
         let t = title.trimmingCharacters(in: .whitespaces)
-        if !t.isEmpty, t != m.title {
-            var info = readInfo(m.folder) ?? MeetingInfo(title: t, started: m.notes?.date ?? ISO8601DateFormatter.local.string(from: m.date))
-            info.title = t
+        let typed = myNotes?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let notesChanged = typed != nil && typed != (m.notes?.myNotes ?? m.info?.myNotes ?? "")
+        if (!t.isEmpty && t != m.title) || notesChanged {
+            var info = readInfo(m.folder) ?? MeetingInfo(title: m.title, started: m.notes?.date ?? ISO8601DateFormatter.local.string(from: m.date))
+            if !t.isEmpty { info.title = t }
+            if notesChanged { info.myNotes = typed?.isEmpty == true ? nil : typed }  // also for "Regenerate notes"
             writeInfo(m.folder, info)
         }
         let kept = todos.filter { !$0.task.trimmingCharacters(in: .whitespaces).isEmpty }
         editNotes(id) { json in
             if !t.isEmpty { json["title"] = t }
-            json["actions"] = kept.map { ["task": $0.task.trimmingCharacters(in: .whitespaces),
-                                          "owner": $0.owner.trimmingCharacters(in: .whitespaces),
-                                          "due": $0.due.trimmingCharacters(in: .whitespaces)] }
+            if notesChanged { json["my_notes"] = typed?.isEmpty == true ? nil : typed }
+            let old = json["actions"] as? [[String: Any]] ?? []
+            json["actions"] = kept.map { d -> [String: Any] in
+                var a: [String: Any] = ["task": d.task.trimmingCharacters(in: .whitespaces),
+                                        "owner": d.owner.trimmingCharacters(in: .whitespaces),
+                                        "due": d.due.trimmingCharacters(in: .whitespaces)]
+                if let i = d.originalIndex, i < old.count {  // where it was said, and whether it was typed
+                    for key in ["at", "typed"] { if let v = old[i][key] { a[key] = v } }
+                }
+                return a
+            }
         }
         let done = kept.enumerated().filter { $0.element.done }.map(\.offset)
         try? JSONEncoder().encode(done).write(to: m.url("todo.json"))

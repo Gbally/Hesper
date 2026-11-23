@@ -3,7 +3,7 @@ import AVFoundation
 import SwiftUI
 
 enum Route: Equatable {
-    case home, todos, ask
+    case home, todos, ask, week
     case meeting(Meeting.ID)
     case speakers(Meeting.ID)
     case brief(CalendarEvent)
@@ -33,6 +33,7 @@ struct RootView: View {
             case .speakers(let id): SpeakersView(id: id, route: $route)
             case .todos: TodosView(route: $route)
             case .ask: AskView(route: $route)
+            case .week: WeekView(route: $route)
             case .brief(let e): BriefView(event: e, route: $route)
             }
         }
@@ -220,6 +221,7 @@ struct HomeView: View {
                     case .ready:
                         PermissionsCard()
                         MemoryCard()
+                        ModelTipCard()
                         LaterNotesCard()
                         hero
                     }
@@ -277,6 +279,7 @@ struct HomeView: View {
                 Button("Transcribe an audio file…") { model.chooseAudioFile() }.disabled(model.phase != .ready)
                 Button("Import a transcript…") { model.chooseTranscriptFile() }.disabled(model.phase != .ready)
                 Button("Open notes folder") { NSWorkspace.shared.open(model.settings.notesFolder) }
+                Button("This week") { route = .week }
                 Divider()
                 Button("Quit Hesper") { NSApp.terminate(nil) }
             } label: { Image(systemName: "ellipsis.circle") }
@@ -292,8 +295,13 @@ struct HomeView: View {
         if model.isRecording {
             Card {
                 HStack {
-                    Circle().fill(Color.red).frame(width: 10, height: 10)
-                    Text("Recording now").font(.headline)
+                    if model.isPaused {
+                        Image(systemName: "pause.circle.fill").foregroundColor(.orange)
+                        Text("Paused").font(.headline)
+                    } else {
+                        Circle().fill(Color.red).frame(width: 10, height: 10)
+                        Text("Recording now").font(.headline)
+                    }
                     Spacer()
                     Text(formatDuration(model.elapsed)).font(.system(.title2, design: .monospaced))
                 }
@@ -304,6 +312,7 @@ struct HomeView: View {
                 LevelMeter(label: "Your mic", icon: "mic.fill", level: model.micLevel, active: model.recorder?.mic != nil)
                 LevelMeter(label: "Meeting", icon: "speaker.wave.2.fill", level: model.systemLevel, active: model.recorder?.system != nil)
                 ForEach(model.notices, id: \.self) { Label($0, systemImage: "exclamationmark.triangle").font(.caption).foregroundColor(.orange) }
+                RecordingTools()
                 Button {
                     model.stopRecording()
                 } label: {
@@ -591,6 +600,7 @@ struct HomeView: View {
         case .processFile(let url): return tr("Processing %@", url.lastPathComponent)
         case .rename(let id, _), .resummarize(let id): return tr("Updating “%@”", model.meeting(id)?.title ?? tr("meeting"))
         case .ask(let q): return tr("Answering “%@”", q)
+        case .followUp(let id): return tr("E-mail for “%@”", model.meeting(id)?.title ?? tr("meeting"))
         }
     }
 }

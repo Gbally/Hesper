@@ -27,6 +27,8 @@ them to your own account — Hesper itself doesn't.
 - **Email drafts in a browser** (only if you pick Gmail or Outlook on the web in Settings): the notes
   are passed to that website to create the draft. The default mail app, Outlook and Apple Mail
   drafts stay local.
+- **A calendar link** (only if you paste one in Settings → Recording → Calendar): that link, and
+  nothing else, is read every 15 minutes. Nothing is sent to it.
 
 ## Permissions it asks for
 

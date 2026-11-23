@@ -187,3 +187,56 @@ it); an icon next to the gear moves the home view into a normal window. What the
   welcome).
 - The page needs to know where it is (e.g. a `detached` flag in the state or the URL) to draw the pin
   rather than the detach icon, and its layout must stretch with the window.
+
+### Next: the 0.7.2 features (Mac side done 2026-11-23) — both apps ship as 0.7.2
+
+The version is already 0.7.2 (pyproject, Hesper.csproj, uv.lock). The engine part is shared and done
+(`src/hesper`, tests in eval/test_rules.py); the Windows app needs the UI and the app-side logic.
+Mac reference: mac/App/Extras.swift (logic), ExtraViews.swift (views), AppModel.swift (pause, mark,
+live notes, follow-up job). Texts: the Mac's (mac/Localization, already translated); Windows-only
+wording (⌃⌥ → Ctrl+Alt, menu bar → notification area, Shortcuts app → none) in Ui/i18n-windows.json.
+New Python deps (icalendar, recurring-ical-events): `uv sync` picks them up with the new uv.lock.
+
+1. **Pause / Resume** while recording: nothing is written while paused and the pause is left out of
+   the timeline (both tracks shift by the paused time, so they stay aligned and the transcript has no
+   gap). Elapsed time = recorded time. No "is it over?" checks while paused. "Paused" in the card,
+   ⏸ in the tray tooltip.
+2. **Mark a moment**: button "Mark · N" + global shortcut **Ctrl+Alt+M** registered only while
+   recording (Mac: ⌃⌥M, Settings → General "Mark an important moment", editable). Plays a short
+   sound. Saved in meeting.json as `"marks": [seconds, …]` (recorded time, one decimal) right away.
+3. **Typed notes** while recording: a multi-line box under the buttons ("Your notes (optional)…",
+   hint "Used for the summary. A line starting with [ ] becomes your to-do."), saved (debounced 1 s)
+   to meeting.json `"my_notes"`. The engine does the rest: context for the notes, `[ ]` / `todo:`
+   lines → to-dos with `"typed": true`, notes.json `my_notes` + `highlights`
+   (`[{at, seconds, lines:[{speaker,text,at}]}]`).
+4. **Meeting page**: after Open questions → "Marked moments" (★ time, the lines, Listen),
+   "My notes", "Talk time" (bar per speaker, % of speech, from transcript.json utterances'
+   end−start, only when 2+ speakers). To-dos with `at`: a quote button "Where was this said?" that
+   unfolds the line said at `at` and the 2 before (from transcript.json) + "Listen" (plays mic +
+   system tracks together from 3 s before the first line, ~25 s) while the audio exists. Typed
+   to-dos: a pencil icon "From your notes typed during the meeting". Edit mode: a "My notes" box
+   saved to meeting.json `my_notes` and notes.json `my_notes` (Regenerate uses it). Saving edits
+   must keep each to-do's `at` and `typed`.
+5. **Follow-up e-mail**: ⋯ → "Write a follow-up e-mail…" and the Email button's arrow → "A
+   follow-up e-mail, written for you". Job `hesper followup FOLDER` (writes followup.txt; first line
+   "Subject: …") → then open the usual e-mail draft with that subject and body. A failure shows a
+   message only (don't mark the meeting as failed).
+6. **This week**: ⋯ → "This week" and a notification Friday from 16:00 (or Sat/Sun if missed),
+   once per week, only if there were meetings (setting "Friday afternoon: my week's meetings and
+   to-dos", on by default). Page: date range; 4 tiles (meetings, time in meetings, to-dos for you,
+   done); Overdue (mine, open, due before today); Your open to-dos (this week's meetings, not
+   overdue); Decisions per meeting; the meetings.
+7. **Calendar link (ICS)** — the important one on Windows (the new Outlook has no API): Settings →
+   Calendar: a text box + Use / Remove, status "Read: N events…" or "Couldn't read it: …". Every
+   15 min (and on Use): `hesper calendar URL --days 2` → `@@result {"events":[{title,start,end
+   (ISO with offset),organizer,attendees:[{name,email}],online,id,series}]}` or `{"error": …}`.
+   Merge with Outlook events (same title + start = one), drop the attendee named like the user.
+   Use them everywhere the calendar is used (current meeting, today, briefs).
+8. **hesper:// links**: register the `hesper` URL protocol for the current user (HKCU\Software\
+   Classes\hesper, removed on uninstall) → record, stop, toggle, pause, resume, mark,
+   note?text=…, open, todos, week. Setting "Allow hesper:// links to control recording" (on);
+   a recording started by a link always shows a notification. Single instance: forward the URL to
+   the running app.
+9. **Better model tip**: when the catalog's recommended notes model (windows section) has a higher
+   `quality` than the one picked, a card on Home: "Better notes with X" / Switch (or Download and
+   switch) / Not now (remembered per recommended model).

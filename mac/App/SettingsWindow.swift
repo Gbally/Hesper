@@ -140,6 +140,19 @@ enum Windows {
         present(others["preview"]!)
     }
 
+    /// The weekly recap in its own window (from the Friday notification or a hesper://week link).
+    static func showWeek(_ model: AppModel) {
+        if others["week"] == nil {
+            let w = make(title: tr("This week"), size: NSSize(width: 440, height: 620),
+                         view: WeekView(route: .constant(.week), inWindow: true).environmentObject(model), autosave: "Week")
+            NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: w, queue: .main) { _ in
+                Task { @MainActor in Windows.others["week"] = nil }
+            }
+            others["week"] = w
+        }
+        present(others["week"]!)
+    }
+
     /// Re-titles open windows; their content redraws by itself (keyed by model.uiLanguage).
     static func languageChanged(_ model: AppModel) {
         settings?.title = tr("Hesper Settings")
@@ -270,8 +283,13 @@ struct GeneralPane: View {
         }
         Section("Shortcut and startup") {
             LabeledContent("Start / stop recording") { HotkeyField(hotkey: $model.settings.hotkey) }
+            LabeledContent("Mark an important moment") {
+                HotkeyField(hotkey: $model.settings.markHotkey, slot: 2, active: model.isRecording)
+            }
+            Caption("Works only while recording: the notes then cover what was said in the minute before.")
             Toggle("Open Hesper at login", isOn: $model.launchAtLogin)
         }
+        LinksSection()
         EmailSection()
     }
 }

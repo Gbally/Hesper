@@ -311,7 +311,7 @@ def write_notes(session: Path, cfg: Config, template: str = ""):
 
     utterances, meta = load_json(session / "transcript.json")
     language = notes_language(cfg, main_language(utterances) or (meta.get("languages") or [""])[0])
-    context = calendar_context(session)
+    context = "\n".join(c for c in (calendar_context(session), typed_context(session, cfg)) if c)
     # The type asked for on the command line, else the meeting's own (picked in the app), else the default.
     template = template or meeting_info(session).get("template") or cfg.template
     if template not in TEMPLATES:
@@ -329,6 +329,12 @@ def write_notes(session: Path, cfg: Config, template: str = ""):
     notes = {"title": title, "date": created.isoformat(timespec="seconds"), "duration": meta["duration"],
              "participants": list(dict.fromkeys(u.speaker for u in utterances)), "tracks": meta.get("tracks", []),
              "template": template, "guessed_names": meta.get("guessed_names", []), **parse_notes(body)}
+    info = meeting_info(session)
+    if (info.get("my_notes") or "").strip():
+        notes["my_notes"] = info["my_notes"].strip()
+        notes["actions"] += typed_todos(info["my_notes"], cfg.me)
+    if info.get("marks"):
+        notes["highlights"] = highlights(utterances, info["marks"])
     (session / "notes.original.json").unlink(missing_ok=True)  # the edits it kept were of the old notes
     save_notes(session, notes)
     print(f"   notes ready in {time.time() - t0:.0f}s")
@@ -390,6 +396,80 @@ def calendar_context(session: Path) -> str:
     if names:
         lines.append(f"Invited: {', '.join(n for n in names if n)}")
     return "\n".join(lines)
+
+
+def typed_context(session: Path, cfg: Config) -> str:
+    """What the note-taker added while recording (meeting.json): notes typed in the app, and the
+    moments marked as important. Given to the model with the calendar details."""
+    from .transcript import fmt_time
+
+    info = meeting_info(session)
+    me = cfg.me if cfg.me and cfg.me != "Me" else "the note-taker"
+    out = []
+    typed = (info.get("my_notes") or "").strip()
+    if typed:
+        out.append(f"Notes {me} typed during the meeting (they show what mattered to {me}; the summary should "
+                   f"cover these points, but who said or will do what comes from the transcript):\n{typed[:4000]}")
+    marks = [m for m in info.get("marks") or [] if isinstance(m, (int, float))]
+    if marks:
+        out.append(f"{me} marked these moments as important: {', '.join(fmt_time(m) for m in marks)}. "
+                   "Make sure the summary covers what was said in the minute before each one.")
+    return "\n\n".join(out)
+
+
+TYPED_TODO = re.compile(r"^\s*(?:[-*•]\s*)?(?:\[\s?\]|(?:todo|to-do|to do|à faire|a faire|tarea|tarefa|pendiente)\s*:)\s*(.+)$", re.I)
+
+
+def typed_todos(typed: str, me: str) -> list[dict]:
+    """Lines of the typed notes written as to-dos ("[ ] send the deck", "todo: call Ana") become
+    the note-taker's to-dos, as typed."""
+    return [{"owner": me if me != "Me" else "", "task": m[1].strip(), "due": "", "typed": True}
+            for line in typed.splitlines() if (m := TYPED_TODO.match(line)) and m[1].strip()]
+
+
+def highlights(utterances, marks: list) -> list[dict]:
+    """For each marked moment: what was said in the minute before it (the button is pressed after
+    the important thing is said), at most 4 lines."""
+    from .transcript import fmt_time
+
+    out = []
+    for mark in sorted(m for m in marks if isinstance(m, (int, float))):
+        near = [u for u in utterances if mark - 60 <= u.start <= mark + 5]
+        if not near:
+            before = [u for u in utterances if u.start <= mark]
+            near = before[-1:]
+        out.append({"at": fmt_time(mark), "seconds": round(mark, 1),
+                    "lines": [{"speaker": u.speaker, "text": u.text, "at": fmt_time(u.start)} for u in near[-4:]]})
+    return out
+
+
+def cmd_followup(args, cfg: Config):
+    """A short follow-up e-mail from the notes, in the notes' language → followup.txt."""
+    from .summarize import follow_up
+    from .transcript import load_json, main_language
+
+    session = Path(args.folder).expanduser().resolve()
+    notes = json.loads((session / "notes.json").read_text())
+    spoken = ""
+    if (session / "transcript.json").exists():
+        utterances, meta = load_json(session / "transcript.json")
+        spoken = main_language(utterances) or (meta.get("languages") or [""])[0]
+    step("Writing the follow-up e-mail")
+    text = follow_up(cfg, notes, notes_language(cfg, spoken), calendar_context(session))
+    (session / "followup.txt").write_text(text + "\n")
+    print("@@result " + json.dumps({"text": text}, ensure_ascii=False), flush=True)
+
+
+def cmd_calendar(args, cfg: Config):
+    """Events from a calendar link (ICS), for the app: from yesterday to `--days` days ahead."""
+    from .ics import fetch_events
+
+    try:
+        events = fetch_events(args.url, days=args.days)
+    except Exception as e:  # noqa: BLE001 — shown in Settings
+        print("@@result " + json.dumps({"error": str(e) or e.__class__.__name__}), flush=True)
+        return
+    print("@@result " + json.dumps({"events": events}, ensure_ascii=False), flush=True)
 
 
 def cmd_process(args, cfg: Config):
@@ -621,6 +701,15 @@ def main():
     md.add_argument("repo", nargs="?")
     md.add_argument("--kind", choices=["notes", "speech"], default="notes")
     md.set_defaults(func=cmd_models)
+
+    fu = sub.add_parser("followup", help="write a follow-up e-mail from a meeting's notes")
+    fu.add_argument("folder")
+    fu.set_defaults(func=cmd_followup)
+
+    ca = sub.add_parser("calendar", help="events from a calendar link (ICS), as JSON")
+    ca.add_argument("url")
+    ca.add_argument("--days", type=int, default=2)
+    ca.set_defaults(func=cmd_calendar)
 
     st = sub.add_parser("setup", help="download the speaker, speech and summary models")
     st.set_defaults(func=cmd_setup)

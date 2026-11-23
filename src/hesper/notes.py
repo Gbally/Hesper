@@ -157,4 +157,12 @@ def render_markdown(notes: dict, duration_text: str) -> str:
         out.append("None recorded.")
     out.append("")
     bullets("Open questions", notes.get("questions", []), "None.")
+    if notes.get("highlights"):
+        out += ["## Marked moments", ""]
+        for h in notes["highlights"]:
+            out.append(f"- **{h['at']}**")
+            out += [f"  - {line['speaker']}: {line['text']}" for line in h.get("lines", [])]
+        out.append("")
+    if notes.get("my_notes"):
+        out += ["## My notes", "", notes["my_notes"], ""]
     return "\n".join(out)

@@ -24,6 +24,16 @@ final class TrackWriter {
     private var framesWritten: AVAudioFramePosition = 0
     private var peak: Float = 0
     private let lock = NSLock()
+    // Paused: nothing is written, and the time spent paused is left out of the timeline (the two
+    // tracks stay aligned, the transcript has no silent gap).
+    private var paused = false
+    private var pausedSeconds: Double = 0
+
+    func setPaused(_ on: Bool, total: Double) {
+        lock.lock(); defer { lock.unlock() }
+        paused = on
+        pausedSeconds = total
+    }
     // Sound or not, second by second, to notice a recording that goes on after the meeting.
     private var sliceSquares: Double = 0
     private var sliceSamples = 0
@@ -43,7 +53,7 @@ final class TrackWriter {
 
     func write(_ buffer: AVAudioPCMBuffer, atSeconds t: Double) {
         lock.lock(); defer { lock.unlock() }
-        guard buffer.frameLength > 0, let pcm = convert(buffer) else { return }
+        guard buffer.frameLength > 0, !paused, let pcm = convert(buffer) else { return }
         do {
             if file == nil {
                 let settings: [String: Any] = [
@@ -53,7 +63,7 @@ final class TrackWriter {
                 file = try AVAudioFile(forWriting: url, settings: settings, commonFormat: .pcmFormatFloat32, interleaved: false)
             }
             guard let file else { return }
-            let expected = AVAudioFramePosition(max(0, t - startSeconds) * 16_000)
+            let expected = AVAudioFramePosition(max(0, t - startSeconds - pausedSeconds) * 16_000)
             var gap = expected - framesWritten
             if gap > 800 { // > 50 ms: pad with silence to keep the timeline aligned
                 while gap > 0 {
@@ -344,7 +354,26 @@ final class MeetingRecorder {
         await system?.stop()
     }
 
-    var elapsed: Double { hostSeconds() - startSeconds }
+    /// Time spent paused (left out of the recording), and when the current pause began.
+    private(set) var pausedTotal: Double = 0
+    private var pausedAt: Double?
+    var isPaused: Bool { pausedAt != nil }
+
+    func pause() {
+        guard pausedAt == nil else { return }
+        pausedAt = hostSeconds()
+        for w in [mic?.writer, system?.writer].compactMap({ $0 }) { w.setPaused(true, total: pausedTotal) }
+    }
+
+    func resume() {
+        guard let at = pausedAt else { return }
+        pausedTotal += hostSeconds() - at
+        pausedAt = nil
+        for w in [mic?.writer, system?.writer].compactMap({ $0 }) { w.setPaused(false, total: pausedTotal) }
+    }
+
+    /// Seconds recorded so far (pauses left out): the position in the audio files.
+    var elapsed: Double { hostSeconds() - startSeconds - pausedTotal - (pausedAt.map { hostSeconds() - $0 } ?? 0) }
 
     /// When someone last spoke or something last played, on either track (seconds from the start).
     var lastSound: Double { max(mic?.writer.lastSound ?? 0, system?.writer.lastSound ?? 0) }

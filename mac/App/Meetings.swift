@@ -16,8 +16,10 @@ struct ActionItem: Codable, Hashable {
     var task: String
     var due: String
     var dueDate: String?  // yyyy-MM-dd, worked out by the engine from `due`
+    var at: String?       // where it was said in the transcript ("00:12:30")
+    var typed: Bool?      // from the notes typed during the meeting, not from what was said
 
-    enum CodingKeys: String, CodingKey { case owner, task, due, dueDate = "due_date" }
+    enum CodingKeys: String, CodingKey { case owner, task, due, at, typed, dueDate = "due_date" }
 
     var dueDay: Date? {
         guard let dueDate else { return nil }
@@ -46,10 +48,19 @@ struct MeetingNotes: Codable {
     var sections: [NoteSection]?
     var version: Int?
     var guessedNames: [String]?   // speaker names taken from the calendar invitations, not yet confirmed
+    var highlights: [Highlight]?  // the moments marked during the recording, with what was said before
+    var myNotes: String?          // typed in the app during the recording
 
     enum CodingKeys: String, CodingKey {
         case title, date, duration, participants, summary, decisions, actions, questions, tracks, template,
-             sections, version, guessedNames = "guessed_names"
+             sections, version, highlights, guessedNames = "guessed_names", myNotes = "my_notes"
+    }
+
+    struct Highlight: Codable, Hashable {
+        var at: String
+        var seconds: Double?
+        var lines: [Line]
+        struct Line: Codable, Hashable { var speaker: String; var text: String; var at: String? }
     }
 
     /// Recorded by the app, but only the microphone had sound: the other participants were
@@ -64,6 +75,10 @@ struct MeetingInfo: Codable {
     var calendar: CalendarEvent?
     var template: String?
     var label: String?  // a copy's name ("Qwen3.5 9B"), added to its title
+    var marks: [Double]?    // moments marked as important while recording (seconds of audio)
+    var myNotes: String?    // notes typed in the app while recording
+
+    enum CodingKeys: String, CodingKey { case title, started, duration, calendar, template, label, marks, myNotes = "my_notes" }
 }
 
 extension JSONDecoder {

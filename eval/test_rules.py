@@ -579,6 +579,103 @@ def test_out_of_memory():
         sm._summarize = real
 
 
+ICS = """BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//test//EN
+BEGIN:VTIMEZONE
+TZID:Europe/Paris
+BEGIN:STANDARD
+DTSTART:19701025T030000
+RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU
+TZOFFSETFROM:+0200
+TZOFFSETTO:+0100
+END:STANDARD
+BEGIN:DAYLIGHT
+DTSTART:19700329T020000
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0200
+END:DAYLIGHT
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:standup-1
+SUMMARY:Daily stand-up
+DTSTART;TZID=Europe/Paris:20261102T091500
+DTEND;TZID=Europe/Paris:20261102T093000
+RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR
+EXDATE;TZID=Europe/Paris:20261124T091500
+LOCATION:https://teams.microsoft.com/l/meetup-join/abc
+ORGANIZER;CN=Ana Lopez:mailto:ana@example.com
+ATTENDEE;CN=Ana Lopez;CUTYPE=INDIVIDUAL:mailto:ana@example.com
+ATTENDEE;CN=Room 4;CUTYPE=ROOM:mailto:room4@example.com
+ATTENDEE:mailto:bob@example.com
+END:VEVENT
+BEGIN:VEVENT
+UID:offsite
+SUMMARY:Offsite
+DTSTART;VALUE=DATE:20261123
+DTEND;VALUE=DATE:20261124
+END:VEVENT
+BEGIN:VEVENT
+UID:cancelled
+SUMMARY:Cancelled call
+STATUS:CANCELLED
+DTSTART:20261123T140000Z
+DTEND:20261123T143000Z
+END:VEVENT
+END:VCALENDAR
+"""
+
+
+def test_ics_calendar():
+    """A calendar link: recurring events expanded (with their exceptions), all-day and cancelled ones
+    left out, rooms not counted as people, times with their offset."""
+    from datetime import timezone
+
+    from hesper.ics import parse_events
+
+    ev = parse_events(ICS, days=2, now=datetime(2026, 11, 23, 10, 0, tzinfo=timezone.utc))
+    assert [e["start"] for e in ev] == ["2026-11-23T09:15:00+01:00", "2026-11-25T09:15:00+01:00"], ev  # the 24th is an exception
+    e = ev[0]
+    assert e["title"] == "Daily stand-up" and e["online"] and e["organizer"] == "Ana Lopez", e
+    assert e["attendees"] == [{"name": "Ana Lopez", "email": "ana@example.com"}, {"name": "bob", "email": "bob@example.com"}], e
+    assert e["series"] == "standup-1" and e["id"] != ev[1]["id"]
+
+
+def test_typed_notes_and_marks():
+    """Notes typed while recording: to-do lines become the note-taker's to-dos; marked moments keep
+    what was said in the minute before them; both reach the model as context."""
+    from hesper import cli
+    from hesper.notes import render_markdown
+
+    typed = "Budget is the real issue\n[ ] send the deck to Ana\n- todo: book the room\nTODO list later"
+    assert cli.typed_todos(typed, "Alex") == [
+        {"owner": "Alex", "task": "send the deck to Ana", "due": "", "typed": True},
+        {"owner": "Alex", "task": "book the room", "due": "", "typed": True}]
+    utts = [Utterance(start=t, end=t + 5, speaker=s, text=x) for t, s, x in
+            [(10, "Ana", "Hello"), (100, "Bob", "The budget doubles"), (130, "Ana", "We need approval"), (400, "Bob", "Later")]]
+    h = cli.highlights(utts, [150, 5])
+    assert [x["at"] for x in h] == ["00:00:05", "00:02:30"], h
+    assert [line["text"] for line in h[1]["lines"]] == ["The budget doubles", "We need approval"], h
+    assert [line["text"] for line in h[0]["lines"]] == [] or h[0]["lines"][0]["text"] == "Hello", h
+    with tempfile.TemporaryDirectory() as d:
+        (Path(d) / "meeting.json").write_text(json.dumps({"title": "x", "started": "2026-11-23T10:00:00",
+                                                          "my_notes": typed, "marks": [150]}))
+        cfg = type("C", (), {"me": "Alex"})()
+        ctx = cli.typed_context(Path(d), cfg)
+        assert "Notes Alex typed" in ctx and "send the deck" in ctx and "00:02:30" in ctx, ctx
+    md = render_markdown({"title": "T", "date": "2026-11-23T10:00:00", "participants": [], "highlights": h,
+                          "my_notes": "Budget"}, "5:00")
+    assert "## Marked moments" in md and "- **00:02:30**" in md and "## My notes" in md, md
+
+
+def test_follow_up_first_person():
+    """The writer's own tasks read "I will…" in the follow-up e-mail, whatever the model wrote."""
+    t = "Lisa Moreau will send the quote.\nAlex Martin will confirm the backups.\n- Alex va préparer l'atelier.\nBest,\nAlex Martin"
+    assert sm.first_person(t, "Alex Martin") == ("Lisa Moreau will send the quote.\nI will confirm the backups.\n"
+                                                 "- Je vais préparer l'atelier.\nBest,\nAlex Martin"), sm.first_person(t, "Alex Martin")
+
+
 if __name__ == "__main__":
     failed = 0
     for name, fn in sorted((n, f) for n, f in globals().items() if n.startswith("test_") and callable(f)):

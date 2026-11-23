@@ -14,6 +14,8 @@ struct MeetingView: View {
     @State private var editing = false
     @State private var draftTitle = ""
     @State private var drafts: [AppModel.TodoDraft] = []
+    @State private var draftNotes = ""
+    @State private var whereShown: Set<Int> = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -38,6 +40,7 @@ struct MeetingView: View {
                         Group {
                             Button("Name the speakers…") { route = .speakers(id) }.disabled(m.notes == nil)
                             Button("Email the notes…") { model.emailNotes(id) }.disabled(m.notes == nil)
+                            Button("Write a follow-up e-mail…") { model.writeFollowUp(id) }.disabled(m.notes == nil || model.isBusy(id))
                             Button("Add my to-dos to Reminders") { model.addToReminders(id, mineOnly: true) }.disabled(m.notes == nil)
                             Button("Add all to-dos to Reminders") { model.addToReminders(id, mineOnly: false) }.disabled(m.notes == nil)
                             Menu("Send to…") {
@@ -88,7 +91,12 @@ struct MeetingView: View {
                         Button { openFile(m.url("transcript.md")) } label: { Label("Transcript", systemImage: "text.alignleft") }
                         Button { openFile(m.url("notes.md")) } label: { Label("Notes", systemImage: "doc.text") }
                         Spacer()
-                        Button { model.emailNotes(id) } label: { Label("Email", systemImage: "envelope") }
+                        Menu {
+                            Button("The notes") { model.emailNotes(id) }
+                            Button("A follow-up e-mail, written for you") { model.writeFollowUp(id) }.disabled(model.isBusy(id))
+                        } label: { Label("Email", systemImage: "envelope") } primaryAction: { model.emailNotes(id) }
+                        .menuStyle(.borderlessButton).fixedSize()
+                        .help("Click: the notes. Arrow: a follow-up e-mail written from the notes.")
                         Button {
                             model.copyNotes(id)
                             copied = true
@@ -179,18 +187,38 @@ struct MeetingView: View {
                 if !n.actions.isEmpty {
                     SectionTitle(text: "To-do")
                     ForEach(Array(n.actions.enumerated()), id: \.offset) { i, a in
-                        Button { model.toggleDone(id, i) } label: { todoRow(a, done: m.done.contains(i)) }
-                            .buttonStyle(.plain)
-                            .contextMenu {
-                                Button(m.done.contains(i) ? tr("Mark as not done") : tr("Mark as done")) { model.toggleDone(id, i) }
-                                Button("Delete this to-do", role: .destructive) { model.deleteTodo(id, i) }
+                        HStack(alignment: .top, spacing: 4) {
+                            Button { model.toggleDone(id, i) } label: { todoRow(a, done: m.done.contains(i)) }
+                                .buttonStyle(.plain)
+                                .contextMenu {
+                                    Button(m.done.contains(i) ? tr("Mark as not done") : tr("Mark as done")) { model.toggleDone(id, i) }
+                                    Button("Delete this to-do", role: .destructive) { model.deleteTodo(id, i) }
+                                }
+                            if a.at != nil && m.hasTranscript {
+                                Button {
+                                    if whereShown.contains(i) { whereShown.remove(i) } else { whereShown.insert(i) }
+                                } label: {
+                                    Image(systemName: "text.quote").foregroundColor(whereShown.contains(i) ? Brand.accent : .secondary)
+                                }
+                                .buttonStyle(.borderless)
+                                .help("Where was this said?")
+                            } else if a.typed == true {
+                                Image(systemName: "pencil").foregroundColor(.secondary).font(.caption)
+                                    .help("From your notes typed during the meeting")
                             }
+                        }
+                        if whereShown.contains(i), let at = a.at {
+                            WhereSaid(meeting: m, at: at).padding(.leading, 26)
+                        }
                     }
                 }
                 bullets("Summary", n.summary)
                 ForEach(n.sections ?? [], id: \.self) { sec in bullets(sec.title, sec.items) }
                 bullets("Decisions", n.decisions)
                 bullets("Open questions", n.questions)
+                HighlightsSection(meeting: m, highlights: n.highlights ?? [])
+                if let typed = n.myNotes, !typed.isEmpty { MyNotesSection(text: typed) }
+                TalkTimeSection(meeting: m)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -222,6 +250,7 @@ struct MeetingView: View {
 
     func startEditing(_ m: Meeting) {
         draftTitle = m.title
+        draftNotes = m.notes?.myNotes ?? m.info?.myNotes ?? ""
         drafts = (m.notes?.actions ?? []).enumerated().map { i, a in
             AppModel.TodoDraft(originalIndex: i, task: a.task, owner: a.owner, due: a.due, done: m.done.contains(i))
         }
@@ -229,7 +258,7 @@ struct MeetingView: View {
     }
 
     func save() {
-        model.saveEdits(id, title: draftTitle, todos: drafts)
+        model.saveEdits(id, title: draftTitle, todos: drafts, myNotes: draftNotes)
         editing = false
     }
 
@@ -259,6 +288,13 @@ struct MeetingView: View {
             } label: { Label("Add a to-do", systemImage: "plus.circle") }
             .buttonStyle(.borderless)
             Text("Due dates are understood in plain words (“Friday”, “next week”, “30 Oct”).")
+                .font(.caption2).foregroundColor(.secondary)
+            SectionTitle(text: "My notes")
+            TextEditor(text: $draftNotes)
+                .font(.callout).frame(minHeight: 70)
+                .padding(4)
+                .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.04)))
+            Text("Your own notes on this meeting. “Regenerate notes” (⋯) uses them for the summary.")
                 .font(.caption2).foregroundColor(.secondary)
             HStack {
                 Button("Cancel") { editing = false }

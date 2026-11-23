@@ -35,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         // Left in its own window last time: open it again (not in demo / screenshot runs).
         if Windows.wasDetached, AppModel.demo == nil, !model.shouldWelcome { Windows.showMain(model) }
         if args.contains("--window") { Windows.showMain(model) }  // testing
+        if args.contains("--week") { Windows.showWeek(model) }  // testing
         // Testing: --welcome [page]
         if let i = args.firstIndex(of: "--welcome") {
             Windows.showWelcome(model, step: i + 1 < args.count ? Int(args[i + 1]) ?? 0 : 0)
@@ -63,6 +64,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
                     guard let v = w.contentView, let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) else { continue }
                     v.cacheDisplay(in: v.bounds, to: rep)
                     save(rep, "window-\(n)-\(w.title.replacingOccurrences(of: "/", with: "-")).png")
+                    // A scrolling page, whole: its content at full height.
+                    @MainActor func scrollViews(_ view: NSView) -> [NSScrollView] {
+                        if let s = view as? NSScrollView { return [s] }
+                        return view.subviews.flatMap { scrollViews($0) }
+                    }
+                    if let doc = scrollViews(v).compactMap(\.documentView).max(by: { $0.bounds.height < $1.bounds.height }),
+                       let full = doc.bitmapImageRepForCachingDisplay(in: doc.bounds) {
+                        doc.cacheDisplay(in: doc.bounds, to: full)
+                        save(full, "window-\(n)-full.png")
+                    }
                 }
                 for (name, img) in [("idle", MenuBarIcon.idle), ("processing", MenuBarIcon.processing(0.4)), ("recording", MenuBarIcon.recording)] {
                     let big = NSImage(size: NSSize(width: 72, height: 72), flipped: false) { r in img.draw(in: r); return true }
@@ -71,6 +82,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
                 NSApp.terminate(nil)
             }
         }
+    }
+
+    /// hesper://record, stop, pause, mark… (Shortcuts, Raycast, a Stream Deck).
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls { model.handleLink(url) }
     }
 
     /// The Dock icon (shown while the detached window is open) brings that window back.
@@ -106,7 +122,7 @@ struct MenuBarLabel: View {
     var body: some View {
         if model.isRecording {
             // Not a template image: the red dot means the mic is on, it must stay red.
-            Text("\(Image(nsImage: MenuBarIcon.recording)) \(formatDuration(model.elapsed))")
+            Text("\(Image(nsImage: MenuBarIcon.recording)) \(model.isPaused ? "⏸ " : "")\(formatDuration(model.elapsed))")
                 .monospacedDigit()
         } else if model.currentJob != nil {
             if let p = model.jobProgress {

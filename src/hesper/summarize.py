@@ -1243,3 +1243,58 @@ def _with_actions(body: str, actions: list[dict]) -> str:
     table = "## Action items\n" + actions_table(actions) + "\n"
     m = re.search(r"^#{1,4}\s*open questions", body, re.I | re.M)
     return body[:m.start()] + table + "\n" + body[m.start():] if m else body.rstrip() + "\n\n" + table
+
+
+FOLLOW_UP_PROMPT = """Write a short follow-up e-mail after this meeting, in {language}, from {me} to the other
+participants. Plain text, no Markdown. First line: "Subject: <subject>". Then: a greeting; one or
+two sentences on what the meeting was about; the decisions, if any; who does what and by when,
+one line each, with the people's names — but {me} is the writer: {me}'s own tasks are written
+"I will…", never with the name; a one-line closing and {me}'s name.
+Use only what is in the notes below — no new facts, dates or promises. Keep it short: a busy
+reader should take it in in 20 seconds.
+
+{context}Meeting: {title}
+
+Summary:
+{summary}
+
+Decisions:
+{decisions}
+
+To-dos:
+{actions}"""
+
+
+def follow_up(cfg: Config, notes: dict, language: str, context: str = "") -> str:
+    """A follow-up e-mail written from the notes (not the transcript: short, and already checked)."""
+    me = cfg.me if cfg.me and cfg.me != "Me" else "me"
+
+    def lines(items):
+        return "\n".join(f"- {i}" for i in items) or "- None"
+
+    def who(owner: str) -> str:  # the writer's own tasks come as "I", so the e-mail says "I will…"
+        return "I (the writer)" if owner and me != "me" and owner.lower() in (me.lower(), "me", "moi") else owner or "?"
+
+    actions = [f"- {who(a.get('owner', ''))}: {a['task']}" + (f" (due {a['due']})" if a.get("due") else "")
+               for a in notes.get("actions", []) if not a.get("typed")]  # typed ones are the writer's private notes
+    prompt = FOLLOW_UP_PROMPT.format(language=language, me=me, context=f"{context}\n\n" if context else "",
+                                     title=notes.get("title", ""), summary=lines(notes.get("summary", [])),
+                                     decisions=lines(notes.get("decisions", [])), actions="\n".join(actions) or "- None")
+    text = LLM(cfg).chat(prompt, max_tokens=700, prose=True)
+    text = re.sub(r"\*\*|__|^#+\s*", "", text, flags=re.M).strip()  # plain text, even if the model wrote Markdown
+    return first_person(text, me)
+
+
+# The writer's own tasks, when the model still wrote them with the writer's name: "Alex will" → "I will".
+WRITER_VERBS = [(r"will", "I will"), (r"va", "Je vais"), (r"va a", "Voy a"), (r"vai", "Vou"), (r"wird", "Ich werde")]
+
+
+def first_person(text: str, me: str) -> str:
+    if not me or me == "me":
+        return text
+    names = sorted({me, me.split()[0]}, key=len, reverse=True)
+    for name in names:
+        for verb, mine in sorted(WRITER_VERBS, key=lambda x: -len(x[0])):
+            text = re.sub(rf"^(\W*){re.escape(name)} {verb}\b", rf"\g<1>{mine}", text, flags=re.M)
+    return text
+

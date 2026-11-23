@@ -11,6 +11,7 @@ struct Hotkey: Codable, Equatable {
     var display: String     // e.g. "⌃⌥R"
 
     static let defaultShortcut = Hotkey(keyCode: UInt32(kVK_ANSI_R), modifiers: UInt32(controlKey | optionKey), display: "⌃⌥R")
+    static let defaultMark = Hotkey(keyCode: UInt32(kVK_ANSI_M), modifiers: UInt32(controlKey | optionKey), display: "⌃⌥M")
 
     /// From a key press; nil unless it has ⌘, ⌃ or ⌥ (plain keys would break typing everywhere).
     init?(event: NSEvent) {
@@ -45,32 +46,39 @@ struct Hotkey: Codable, Equatable {
     }
 }
 
-/// Registers the shortcut and calls `action` when it's pressed.
+/// Registers the shortcuts and calls their action when pressed: slot 1 = start / stop recording,
+/// slot 2 = mark a moment (registered only while recording, so the keys stay free otherwise).
 final class HotkeyCenter {
     static let shared = HotkeyCenter()
     var action: (() -> Void)?
-    private var ref: EventHotKeyRef?
+    var markAction: (() -> Void)?
+    private var refs: [UInt32: EventHotKeyRef] = [:]
     private var handlerInstalled = false
 
-    func register(_ hotkey: Hotkey?) {
-        unregister()
+    func register(_ hotkey: Hotkey?, slot: UInt32 = 1) {
+        unregister(slot: slot)
         guard let hotkey else { return }
         installHandler()
-        let id = EventHotKeyID(signature: OSType(0x4D534352), id: 1) // 'MSCR'
+        var ref: EventHotKeyRef?
+        let id = EventHotKeyID(signature: OSType(0x4D534352), id: slot) // 'MSCR'
         RegisterEventHotKey(hotkey.keyCode, hotkey.modifiers, id, GetApplicationEventTarget(), 0, &ref)
+        refs[slot] = ref
     }
 
-    func unregister() {
-        if let ref { UnregisterEventHotKey(ref) }
-        ref = nil
+    func unregister(slot: UInt32 = 1) {
+        if let ref = refs.removeValue(forKey: slot) { UnregisterEventHotKey(ref) }
     }
 
     private func installHandler() {
         guard !handlerInstalled else { return }
         handlerInstalled = true
         var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
-        InstallEventHandler(GetApplicationEventTarget(), { _, _, _ in
-            DispatchQueue.main.async { HotkeyCenter.shared.action?() }
+        InstallEventHandler(GetApplicationEventTarget(), { _, event, _ in
+            var id = EventHotKeyID()
+            GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil,
+                              MemoryLayout<EventHotKeyID>.size, nil, &id)
+            let slot = id.id
+            DispatchQueue.main.async { slot == 2 ? HotkeyCenter.shared.markAction?() : HotkeyCenter.shared.action?() }
             return noErr
         }, 1, &spec, nil, nil)
     }
@@ -79,6 +87,8 @@ final class HotkeyCenter {
 /// "⌃⌥R  [Change] [Remove]" — click Change, then press the new combination.
 struct HotkeyField: View {
     @Binding var hotkey: Hotkey?
+    var slot: UInt32 = 1
+    var active = true  // registered now (the mark shortcut only is while recording)
     @State private var capturing = false
     @State private var monitor: Any?
     @State private var hint = ""
@@ -101,7 +111,7 @@ struct HotkeyField: View {
 
     private func startCapture() {
         NSApp.activate(ignoringOtherApps: true)
-        HotkeyCenter.shared.unregister() // so pressing the current shortcut can be captured
+        HotkeyCenter.shared.unregister(slot: slot) // so pressing the current shortcut can be captured
         capturing = true
         hint = ""
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
@@ -119,6 +129,6 @@ struct HotkeyField: View {
     private func stop() {
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil
-        if capturing { capturing = false; HotkeyCenter.shared.register(hotkey) }
+        if capturing { capturing = false; if active { HotkeyCenter.shared.register(hotkey, slot: slot) } }
     }
 }

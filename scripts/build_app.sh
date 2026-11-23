@@ -54,6 +54,11 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleVersion</key><string>$BUILD</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>LSUIElement</key><true/>
+  <key>CFBundleURLTypes</key>
+  <array><dict>
+    <key>CFBundleURLName</key><string>Hesper links</string>
+    <key>CFBundleURLSchemes</key><array><string>hesper</string></array>
+  </dict></array>
   <key>LSArchitecturePriority</key><array><string>arm64</string></array>
   <key>HesperReleasesRepo</key><string>Gbally/Hesper</string>
   <key>MSDeveloperTeam</key><string>${DEVELOPER_TEAM:-}</string>

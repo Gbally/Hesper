@@ -84,9 +84,13 @@ struct AppSettings: Codable, Equatable {
     var gmailAccount = ""        // which Google account opens (several signed in)
     var briefs = true            // "In 5 min: …" with last time's open to-dos
     var dueReminders = true      // notification the day before a to-do of mine is due
+    var weeklyRecap = true       // Friday afternoon: the week's meetings and to-dos
+    var calendarLink = ""        // a calendar's ICS / webcal link (Google, the new Outlook…), besides the Mac's calendar
+    var allowLinks = true        // hesper:// links (Shortcuts, Raycast, Stream Deck…) can start, stop, pause, mark
     var autoRecord = false       // start when a call starts, stop when it ends
     var defaultTemplate = "general"
     var hotkey: Hotkey? = .defaultShortcut
+    var markHotkey: Hotkey? = .defaultMark   // while recording: mark the moment as important
     var audioRetentionDays = 7   // 0 = delete right after the notes, -1 = keep forever
     var llmModel: String?        // nil = the catalog's recommendation for this Mac
     var whisperModel: String?
@@ -136,9 +140,13 @@ struct AppSettings: Codable, Equatable {
         gmailAccount = try c.decodeIfPresent(String.self, forKey: .gmailAccount) ?? ""
         briefs = try c.decodeIfPresent(Bool.self, forKey: .briefs) ?? d.briefs
         dueReminders = try c.decodeIfPresent(Bool.self, forKey: .dueReminders) ?? d.dueReminders
+        weeklyRecap = try c.decodeIfPresent(Bool.self, forKey: .weeklyRecap) ?? d.weeklyRecap
+        calendarLink = try c.decodeIfPresent(String.self, forKey: .calendarLink) ?? ""
+        allowLinks = try c.decodeIfPresent(Bool.self, forKey: .allowLinks) ?? d.allowLinks
         autoRecord = try c.decodeIfPresent(Bool.self, forKey: .autoRecord) ?? d.autoRecord
         defaultTemplate = try c.decodeIfPresent(String.self, forKey: .defaultTemplate) ?? d.defaultTemplate
         hotkey = c.contains(.hotkey) ? try c.decodeIfPresent(Hotkey.self, forKey: .hotkey) : d.hotkey
+        markHotkey = c.contains(.markHotkey) ? try c.decodeIfPresent(Hotkey.self, forKey: .markHotkey) : d.markHotkey
         llmModel = try c.decodeIfPresent(String.self, forKey: .llmModel)
         whisperModel = try c.decodeIfPresent(String.self, forKey: .whisperModel)
         exportFolderPath = try c.decodeIfPresent(String.self, forKey: .exportFolderPath) ?? ""
@@ -172,7 +180,7 @@ struct AppSettings: Codable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case myName, language, languages, notesLanguage, useCalendar, callReminders, endReminders, stopWhenOver, notifyWhenReady,
-             emailApp, gmailAccount, briefs, dueReminders, autoRecord, defaultTemplate, hotkey, audioRetentionDays, llmModel, whisperModel,
+             emailApp, gmailAccount, briefs, dueReminders, weeklyRecap, calendarLink, allowLinks, autoRecord, defaultTemplate, hotkey, markHotkey, audioRetentionDays, llmModel, whisperModel,
              vocabulary, summaryStyle, todoFilter, teamsOnly, keepAudio, storage, oneDrivePath,
              customFolderPath, notesFolderPath, exportFolderPath, autoExport, notesTiming, laterModel, laterWindows,
              laterInWindows, laterWhenIdle, laterIdleMinutes, laterWhenLocked
@@ -192,9 +200,13 @@ struct AppSettings: Codable, Equatable {
         try c.encode(gmailAccount, forKey: .gmailAccount)
         try c.encode(briefs, forKey: .briefs)
         try c.encode(dueReminders, forKey: .dueReminders)
+        try c.encode(weeklyRecap, forKey: .weeklyRecap)
+        try c.encode(calendarLink, forKey: .calendarLink)
+        try c.encode(allowLinks, forKey: .allowLinks)
         try c.encode(autoRecord, forKey: .autoRecord)
         try c.encode(defaultTemplate, forKey: .defaultTemplate)
         try c.encode(hotkey, forKey: .hotkey)
+        try c.encode(markHotkey, forKey: .markHotkey)
         try c.encode(audioRetentionDays, forKey: .audioRetentionDays)
         try c.encodeIfPresent(llmModel, forKey: .llmModel)
         try c.encodeIfPresent(whisperModel, forKey: .whisperModel)

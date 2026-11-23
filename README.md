@@ -68,6 +68,21 @@ Your recordings, transcripts and notes are plain files in a folder you choose.
   own sections; "Regenerate as…" to switch, "Regenerate in a copy with…" to compare models.
 - **Notes when you're away** (Settings → Notes): the transcript right away, the notes — or quick
   notes now and better ones with a bigger model — at set times, when the Mac is idle or locked.
+- **During the meeting:** **pause** (the pause is left out), **mark a moment** as important
+  (button, or ⌃⌥M from any app — the notes then cover what was said in the minute before, with a
+  "Marked moments" section), and **type your own notes**: they shape the summary, and a line
+  starting with `[ ]` becomes your to-do.
+- **Where was this said?** Each to-do shows the transcript lines it came from, and plays that
+  moment while the audio is kept.
+- **Talk time** per person, and a **follow-up e-mail** written from the notes (Email ▾), with your
+  tasks as "I will…" and your private typed to-dos left out.
+- **This week:** a Friday recap (meetings, your open and overdue to-dos, decisions), also in ⋯.
+- **Calendar link (ICS):** Google Calendar, the new Outlook, iCloud… without adding the account
+  to the Mac (Settings → Recording → Calendar).
+- **Shortcuts & automation:** `hesper://record`, `stop`, `pause`, `resume`, `mark`,
+  `note?text=…`, `todos`, `week` — for the Shortcuts app, Raycast, Alfred or a Stream Deck.
+- **Better model tip:** when a better notes model is recommended for your Mac, the app offers it once.
+- **Its own window:** the menu bar window can be detached (icon next to ⚙︎), resized, kept on top.
 - **Shortcut:** start/stop from anywhere (default ⌃⌥R, changeable in Settings).
 - **Edit:** rename a meeting, fix/add/delete to-dos (notes.md is rebuilt with `hesper render`).
 - **Privacy:** audio (and voice samples) deleted after 7 days by default; notes are kept.

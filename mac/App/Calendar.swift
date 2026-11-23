@@ -42,48 +42,57 @@ final class CalendarService {
         return await withCheckedContinuation { c in store.requestAccess(to: .reminder) { ok, _ in c.resume(returning: ok) } }
     }
 
+    /// Events from the calendar link (Settings → Recording → Calendar), refreshed by the app.
+    @MainActor static var linkEvents: [CalendarEvent] = []
+
+    /// Timed events overlapping from…to: the Mac's calendars (when allowed) and the calendar link,
+    /// an event in both counted once.
+    @MainActor private func events(from: Date, to: Date) -> [CalendarEvent] {
+        var out: [CalendarEvent] = []
+        if eventsAllowed {
+            out = store.events(matching: store.predicateForEvents(withStart: from, end: to, calendars: nil))
+                .filter { !$0.isAllDay && $0.status != .canceled }
+                .map(Self.convert)
+        }
+        let seen = Set(out.map { "\($0.title.lowercased())|\(Int($0.start.timeIntervalSince1970))" })
+        out += Self.linkEvents.filter {
+            $0.end > from && $0.start < to && !seen.contains("\($0.title.lowercased())|\(Int($0.start.timeIntervalSince1970))")
+        }
+        return out
+    }
+
+    /// A real meeting: with other people, or a Teams/Zoom/Meet link.
+    private static func isMeeting(_ e: CalendarEvent) -> Bool { e.isOnlineMeeting || !e.attendees.isEmpty }
+
     /// The meeting happening now (or starting within 10 minutes), preferring real meetings
     /// (with attendees or a Teams/Zoom link) over personal blocks.
-    func currentMeeting(at now: Date = Date()) -> CalendarEvent? {
-        guard eventsAllowed else { return nil }
-        let predicate = store.predicateForEvents(withStart: now.addingTimeInterval(-6 * 3600),
-                                                 end: now.addingTimeInterval(600), calendars: nil)
-        let candidates = store.events(matching: predicate).filter {
-            !$0.isAllDay && $0.endDate > now && $0.startDate <= now.addingTimeInterval(600)
-                && $0.status != .canceled && $0.endDate.timeIntervalSince($0.startDate) < 6 * 3600
+    @MainActor func currentMeeting(at now: Date = Date()) -> CalendarEvent? {
+        let candidates = events(from: now.addingTimeInterval(-6 * 3600), to: now.addingTimeInterval(600)).filter {
+            $0.end > now && $0.start <= now.addingTimeInterval(600) && $0.end.timeIntervalSince($0.start) < 6 * 3600
         }
-        let best = candidates.max { score($0, now) < score($1, now) }
-        return best.map(Self.convert)
+        return candidates.max { score($0, now) < score($1, now) }
     }
 
     /// Today's real meetings (with other people or a call link), in order.
-    func todayMeetings(_ now: Date = Date()) -> [CalendarEvent] {
-        guard eventsAllowed else { return [] }
+    @MainActor func todayMeetings(_ now: Date = Date()) -> [CalendarEvent] {
         let cal = Calendar.current
         let start = cal.startOfDay(for: now)
         let end = cal.date(byAdding: .day, value: 1, to: start)!
-        return store.events(matching: store.predicateForEvents(withStart: start, end: end, calendars: nil))
-            .filter { !$0.isAllDay && $0.status != .canceled && (Self.isOnline($0) || ($0.attendees?.count ?? 0) > 1) }
-            .sorted { $0.startDate < $1.startDate }
-            .map(Self.convert)
+        return events(from: start, to: end).filter { $0.start >= start && Self.isMeeting($0) }.sorted { $0.start < $1.start }
     }
 
     /// Real meetings (with other people or a call link) starting within the next `minutes`.
-    func upcomingMeetings(within minutes: Double, from now: Date = Date()) -> [CalendarEvent] {
-        guard eventsAllowed else { return [] }
-        let predicate = store.predicateForEvents(withStart: now, end: now.addingTimeInterval(minutes * 60), calendars: nil)
-        return store.events(matching: predicate)
-            .filter { !$0.isAllDay && $0.startDate >= now && $0.status != .canceled
-                && (Self.isOnline($0) || ($0.attendees?.count ?? 0) > 1) }
-            .sorted { $0.startDate < $1.startDate }
-            .map(Self.convert)
+    @MainActor func upcomingMeetings(within minutes: Double, from now: Date = Date()) -> [CalendarEvent] {
+        events(from: now, to: now.addingTimeInterval(minutes * 60))
+            .filter { $0.start >= now && Self.isMeeting($0) }
+            .sorted { $0.start < $1.start }
     }
 
-    private func score(_ e: EKEvent, _ now: Date) -> Double {
+    private func score(_ e: CalendarEvent, _ now: Date) -> Double {
         var s = 0.0
-        if Self.isOnline(e) { s += 3 }
-        if (e.attendees?.count ?? 0) > 1 { s += 2 }
-        s -= abs(e.startDate.timeIntervalSince(now)) / 3600 // closest start wins ties
+        if e.isOnlineMeeting { s += 3 }
+        if !e.attendees.isEmpty { s += 2 }
+        s -= abs(e.start.timeIntervalSince(now)) / 3600 // closest start wins ties
         return s
     }
 
