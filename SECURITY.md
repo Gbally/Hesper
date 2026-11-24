@@ -6,7 +6,7 @@ Hesper records meetings, so security reports matter a lot. Thank you for looking
 
 Please **don't open a public issue**. Report it privately:
 [Security → Report a vulnerability](https://github.com/Gbally/Hesper/security/advisories/new).
-Only the maintainer sees it. Hesper is a one-person project: I'll answer as soon as I can, and once
+Hesper is a one-person project (for now): I'll answer as soon as I can, and once
 it's fixed the release notes say what was fixed (and credit you, if you like).
 
 Please include the Hesper version, Mac or Windows, what someone could do with the problem, and how
