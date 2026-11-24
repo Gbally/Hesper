@@ -1,8 +1,6 @@
-<p align="center"><img src="docs/img/icon.png" width="96" alt=""></p>
+<p align="center"><img src="docs/img/banner.jpg" width="860" alt="Hesper — Private meeting notes, fully offline"></p>
 
-<h1 align="center">Hesper</h1>
-
-<p align="center"><i>Private meeting notes, fully offline</i> · by Gbally · formerly MeetScribe</p>
+<p align="center">by Gbally · formerly MeetScribe</p>
 
 <p align="center"><b>Meeting notes that stay on your computer.</b><br>
 Records your Teams, Zoom or Meet calls, works out who said what, and writes a summary, the decisions
@@ -16,7 +14,8 @@ and a to-do list — with AI that runs entirely on your Mac or PC. Free, open so
   <a href="mac/INSTALL.txt">Install guide</a>
 </p>
 
-<p align="center"><img src="docs/img/meeting.png" width="640" alt="Meeting notes: to-dos with due dates, summary and decisions"></p>
+<p align="center"><a href="https://gbally.github.io/Hesper/#demo"><img src="docs/img/video-poster.jpg" width="720" alt="Hesper in a minute: recording, notes, where each to-do was said, the follow-up e-mail"></a><br>
+<a href="https://gbally.github.io/Hesper/#demo">▶ Watch the 1-minute demo</a></p>
 
 ## Why
 

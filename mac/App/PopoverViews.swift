@@ -309,8 +309,9 @@ struct HomeView: View {
                     Label(tr("%@ · until %@", e.title, e.end.local(date: .omitted, time: .shortened)), systemImage: "calendar")
                         .font(.caption).foregroundColor(.secondary).lineLimit(1)
                 }
-                LevelMeter(label: "Your mic", icon: "mic.fill", level: model.micLevel, active: model.recorder?.mic != nil)
-                LevelMeter(label: "Meeting", icon: "speaker.wave.2.fill", level: model.systemLevel, active: model.recorder?.system != nil)
+                LevelMeter(label: "Your mic", icon: "mic.fill", level: model.micLevel, active: model.recorder?.mic != nil || model.demoRecording)
+                LevelMeter(label: "Meeting", icon: "speaker.wave.2.fill", level: model.systemLevel,
+                           active: model.recorder?.system != nil || model.demoRecording)
                 ForEach(model.notices, id: \.self) { Label($0, systemImage: "exclamationmark.triangle").font(.caption).foregroundColor(.orange) }
                 RecordingTools()
                 Button {

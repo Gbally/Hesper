@@ -194,6 +194,7 @@ struct MeetingWindow: View {
             }
         }
         .frame(minWidth: 460, minHeight: 480)
+        .onAppear { if AppModel.demoFlag("--speakers") { route = .speakers(id) } }  // the demo video
         .environment(\.locale, AppLanguage.locale)
         .id(model.uiLanguage)
     }

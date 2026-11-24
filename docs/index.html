@@ -4,11 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hesper — private meeting notes, fully offline</title>
-<meta name="description" content="Hesper records your Teams, Zoom or Meet calls, transcribes them, recognises who spoke, and writes a summary with decisions and to-dos — all on your Mac.">
+<meta name="description" content="Hesper records your Teams, Zoom or Meet calls, transcribes them, recognises who spoke, and writes a summary with decisions and to-dos — all on your Mac or PC.">
 <link rel="icon" href="img/icon.png">
 <meta property="og:title" content="Hesper — private meeting notes, fully offline">
-<meta property="og:description" content="Local AI meeting notes for macOS: transcript, speakers, summary and to-dos. Free, private, no account.">
-<meta property="og:image" content="img/meeting.png">
+<meta property="og:description" content="Local AI meeting notes for Mac and Windows: transcript, speakers, summary and to-dos. Free, private, no account.">
+<meta property="og:image" content="https://gbally.github.io/Hesper/img/social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:url" content="https://gbally.github.io/Hesper/">
+<meta name="twitter:card" content="summary_large_image">
 <style>
   :root {
     --bg: #F6F6F3; --surface: #ffffff; --text: #1d1d1f; --muted: #6e6e73; --line: #e5e5ea;
@@ -56,6 +60,9 @@
   .shots .a { width: 38%; margin-right: -6%; z-index: 2; }
   .shots .b { width: 56%; }
   section { padding: 72px 0; }
+  #demo { padding-top: 40px; }
+  #demo video { display: block; width: 100%; max-width: 1040px; margin: 0 auto; aspect-ratio: 16 / 9; border-radius: 14px;
+                border: 1px solid var(--line); box-shadow: 0 24px 60px rgba(0, 0, 0, .35); background: #1B1F2E; }
   section h2 { font-size: clamp(28px, 4vw, 40px); letter-spacing: -0.015em; margin: 0 0 12px; text-align: center; }
   section .sub { color: var(--muted); text-align: center; max-width: 640px; margin: 0 auto 44px; font-size: 18px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
@@ -99,6 +106,7 @@
   <div class="wrap">
     <a class="brand" href="#"><img src="img/icon.png?v=071" alt="">Hesper</a>
     <div class="links">
+      <a href="#demo">Demo</a>
       <a href="#features">Features</a>
       <a href="#privacy">Privacy</a>
       <a href="#install">Install</a>
@@ -132,6 +140,14 @@
     </div>
   </div>
 </header>
+
+<section id="demo">
+  <div class="wrap">
+    <h2>See it in a minute</h2>
+    <p class="sub">A day of meetings: a call noticed, notes in minutes, who said what, the follow-up e-mail, your to-dos — no sound needed.</p>
+    <video src="video/hesper-demo.mp4?v=076" poster="img/video-poster.jpg?v=076" controls muted loop playsinline preload="none"></video>
+  </div>
+</section>
 
 <section id="features">
   <div class="wrap">
@@ -231,6 +247,14 @@
       document.querySelectorAll("nav a.dl").forEach(a => { a.href = info.url; });
     }
   }).catch(() => {});
+
+  // The demo video plays (muted) when it comes into view, and is only downloaded then.
+  const demo = document.querySelector("#demo video");
+  if (demo && "IntersectionObserver" in window) {
+    new IntersectionObserver(entries => entries.forEach(e => {
+      if (e.isIntersecting) demo.play().catch(() => {}); else demo.pause();
+    }), { threshold: 0.5 }).observe(demo);
+  }
 </script>
 </body>
 </html>

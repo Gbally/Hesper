@@ -85,6 +85,11 @@ struct MeetingView: View {
                 ScrollView {
                     if editing { editor.padding(14) } else { content(m).padding(14) }
                 }
+                .onAppear {  // the demo video: one "where was this said?" open
+                    if AppModel.demoFlag("--expand-where"), let i = m.notes?.actions.firstIndex(where: { $0.at != nil && $0.owner == model.settings.myName }) {
+                        whereShown = [i]
+                    }
+                }
                 if m.notes != nil {
                     Divider()
                     HStack {
@@ -625,6 +630,18 @@ struct BriefView: View {
 
 struct AskView: View {
     @EnvironmentObject var model: AppModel
+
+    /// The answer's Markdown (bold, italics, bullets) shown as such, not as asterisks.
+    static func rich(_ text: String) -> AttributedString {
+        let lines = text.components(separatedBy: "\n").map { line -> String in
+            guard let r = line.range(of: #"^\s*[*\-•]\s+"#, options: .regularExpression) else { return line }
+            return "•  " + line[r.upperBound...]
+        }
+        let md = lines.joined(separator: "\n")
+        return (try? AttributedString(markdown: md, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
+            ?? AttributedString(md)
+    }
+
     @Binding var route: Route
     @State private var question = ""
 
@@ -636,6 +653,7 @@ struct AskView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         TextField("Ask a question…", text: $question).textFieldStyle(.roundedBorder)
+                            .onAppear { if question.isEmpty { question = model.askQuestion } }
                             .onSubmit { model.ask(question) }
                         Button("Ask") { model.ask(question) }.disabled(model.isAsking)
                     }
@@ -648,7 +666,7 @@ struct AskView: View {
                     } else if let err = model.askError {
                         Text(err).font(.caption).foregroundColor(.red).textSelection(.enabled)
                     } else if let r = model.askResult {
-                        Text(r.answer).font(.callout).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
+                        Text(Self.rich(r.answer)).font(.callout).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
                         if !r.sources.isEmpty {
                             SectionTitle(text: "Sources")
                             ForEach(r.sources, id: \.self) { src in

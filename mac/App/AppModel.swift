@@ -426,7 +426,11 @@ final class AppModel: ObservableObject {
 
     // MARK: - Recording
 
-    var isRecording: Bool { recorder != nil }
+    var isRecording: Bool { recorder != nil || demoRecording }
+    /// Screenshots and the demo video only (`--demo … --fake-recording`): the recording card, with no
+    /// recording behind it.
+    @Published var demoRecording = false
+    static func demoFlag(_ name: String) -> Bool { demo != nil && CommandLine.arguments.contains(name) }
 
     func toggleRecording() {
         guard phase == .ready else { return }
