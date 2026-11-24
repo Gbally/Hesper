@@ -263,7 +263,9 @@ Language forces one.
 
 ## Contributing
 
-Bug reports and ideas: [open an issue](https://github.com/Gbally/Hesper/issues).
+Bug reports and ideas: [open an issue](https://github.com/Gbally/Hesper/issues/new/choose).
+Questions: [Discussions](https://github.com/Gbally/Hesper/discussions). Security problems: privately,
+see [SECURITY.md](SECURITY.md).
 Pull requests welcome — please keep `python3 scripts/i18n.py extract` clean.
 
 ## License

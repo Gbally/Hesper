@@ -1,0 +1,70 @@
+name: Bug report
+description: Something doesn't work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report it!
+
+        **Please never paste meeting content here** — no transcripts, notes, recordings or names of
+        the people in your meetings. Describe what happened instead: Hesper keeps your meetings on
+        your computer, so let's keep them there.
+  - type: input
+    id: version
+    attributes:
+      label: Hesper version
+      description: Settings → About.
+      placeholder: "0.7.2"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Computer
+      options:
+        - Mac
+        - Windows
+    validations:
+      required: true
+  - type: input
+    id: machine
+    attributes:
+      label: System and hardware
+      description: macOS or Windows version, chip and memory; on Windows, the graphics card if there is one.
+      placeholder: "macOS 26, M2, 16 GB — or — Windows 11, Ryzen 7, 32 GB, RTX 3060"
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where did it happen?
+      options:
+        - Install or first setup (models download)
+        - Recording
+        - Transcript or speakers
+        - Notes, to-dos or follow-up e-mail
+        - Search or Ask
+        - Calendar
+        - Updates
+        - Something else
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. …
+        2. …
+  - type: textarea
+    id: log
+    attributes:
+      label: Log (optional, helps a lot)
+      description: |
+        The last lines of the log. Mac: Settings → Privacy and storage → Engine → Log → Open
+        (`~/Library/Application Support/Hesper/engine.log`). Windows: `%LOCALAPPDATA%\Hesper\hesper.log`.
+        Read it before pasting and remove anything private (meeting titles, names, folder paths).
+      render: text

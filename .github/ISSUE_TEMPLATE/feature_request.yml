@@ -1,0 +1,36 @@
+name: Idea or feature request
+description: Something Hesper could do, or do better.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ideas are very welcome! Have a look at the open issues first: a 👍 on an existing idea helps too.
+
+        Hesper has one rule: **meetings never leave your computer**. Ideas that need an online AI
+        service won't fit — but a local way to do the same thing is always worth suggesting.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would it help you with?
+      description: The situation — e.g. "after each call I always have to…".
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like Hesper to do?
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: On which computer?
+      options:
+        - Mac and Windows
+        - Mac
+        - Windows
+  - type: textarea
+    id: today
+    attributes:
+      label: What do you do today instead? (optional)
