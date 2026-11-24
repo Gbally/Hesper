@@ -1,5 +1,12 @@
 <p align="center"><img src="docs/img/banner.jpg" width="860" alt="Hesper — Private meeting notes, fully offline"></p>
 
+<p align="center">
+  <a href="https://github.com/Gbally/Hesper/releases/latest"><img src="https://img.shields.io/github/v/release/Gbally/Hesper?style=flat&label=release&color=F2B544" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-2E3550?style=flat" alt="macOS and Windows">
+  <img src="https://img.shields.io/badge/runs-100%25%20offline-2E3550?style=flat" alt="Runs 100% offline">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2E3550?style=flat" alt="MIT license"></a>
+</p>
+
 <p align="center">by Gbally · formerly MeetScribe</p>
 
 <p align="center"><b>Meeting notes that stay on your computer.</b><br>
@@ -14,8 +21,7 @@ and a to-do list — with AI that runs entirely on your Mac or PC. Free, open so
   <a href="mac/INSTALL.txt">Install guide</a>
 </p>
 
-<p align="center"><a href="https://gbally.github.io/Hesper/#demo"><img src="docs/img/video-poster.jpg" width="720" alt="Hesper in a minute: recording, notes, where each to-do was said, the follow-up e-mail"></a><br>
-<a href="https://gbally.github.io/Hesper/#demo">▶ Watch the 1-minute demo</a></p>
+https://github.com/user-attachments/assets/54fbc1e8-ba93-4790-9aa6-8796beea0722
 
 ## Why
 

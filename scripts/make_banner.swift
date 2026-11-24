@@ -3,8 +3,8 @@
 //
 //   swift scripts/make_banner.swift OUT.png|OUT.jpg [WIDTH]      (2:1, default 1280 × 640)
 //
-// docs/img/banner.jpg (2560, the README) and docs/img/social-preview.png (1280, GitHub → Settings →
-// Social preview, and the site's link previews; GitHub wants it under 1 MB).
+// docs/img/banner.jpg (2560): the top of the README. docs/img/social-preview.png (1280): GitHub →
+// Settings → Social preview (under 1 MB), and the site's link previews (og:image).
 
 import AppKit
 
