@@ -1148,7 +1148,7 @@ async function drawPane() {
   else if (pane === "about") {
     const u = state.update ?? {}, info = u.available;
     el.innerHTML = `<div class="row" style="gap:16px;padding:4px 2px">${appIcon(64)}<div><div class="wordmark" style="font-size:28px">Hesper</div>
-        <div class="secondary">${L("Private meeting notes, fully offline")} · ${esc(state.version.replace(/\.0$/, ""))}</div></div></div>` +
+        <div class="secondary">${L("Private meeting notes, fully offline")} · ${esc(state.version.replace(/\.0$/, ""))}${linux() ? " · " + L("Linux beta") : ""}</div></div></div>` +
       group("", [
         ...(info ? [item(L("Update available"), `<button class="btn small primary" data-do="installUpdate" ${state.recording || state.job || u.state === "downloading" ? "disabled" : ""}>${esc(tr("Install %@ and restart", info.version))}</button>`),
                     ...(info.notes ? [caption(info.notes)] : []),

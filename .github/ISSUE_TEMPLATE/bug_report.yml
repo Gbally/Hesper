@@ -25,14 +25,15 @@ body:
       options:
         - Mac
         - Windows
+        - Linux (beta)
     validations:
       required: true
   - type: input
     id: machine
     attributes:
       label: System and hardware
-      description: macOS or Windows version, chip and memory; on Windows, the graphics card if there is one.
-      placeholder: "macOS 26, M2, 16 GB — or — Windows 11, Ryzen 7, 32 GB, RTX 3060"
+      description: macOS, Windows or Linux version (and desktop), chip and memory; on Windows and Linux, the graphics card if there is one.
+      placeholder: "macOS 26, M2, 16 GB — or — Windows 11, Ryzen 7, 32 GB, RTX 3060 — or — Ubuntu 24.04 GNOME, 32 GB"
   - type: dropdown
     id: area
     attributes:
@@ -66,5 +67,6 @@ body:
       description: |
         The last lines of the log. Mac: Settings → Privacy and storage → Engine → Log → Open
         (`~/Library/Application Support/Hesper/engine.log`). Windows: `%LOCALAPPDATA%\Hesper\hesper.log`.
+        Linux: `~/.local/share/Hesper/hesper.log`.
         Read it before pasting and remove anything private (meeting titles, names, folder paths).
       render: text

@@ -1,4 +1,4 @@
-# Hesper for Linux (preview)
+# Hesper for Linux (beta)
 
 The Windows app's code and pages (`win/Hesper`), with a Linux host. Same Python engine, same models
 (faster-whisper, llama.cpp, sherpa-onnx), same features as on Windows except the Windows-only ones

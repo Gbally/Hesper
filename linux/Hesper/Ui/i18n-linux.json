@@ -17,7 +17,8 @@
     "Open Hesper": "Ouvrir Hesper",
     "Stop and create notes": "Arrêter et créer les notes",
     "Settings…": "Réglages…",
-    "A meeting is being recorded. Stop it and quit? Its notes won't be created now.": "Une réunion est en cours d'enregistrement. L'arrêter et quitter ? Ses notes ne seront pas créées maintenant."
+    "A meeting is being recorded. Stop it and quit? Its notes won't be created now.": "Une réunion est en cours d'enregistrement. L'arrêter et quitter ? Ses notes ne seront pas créées maintenant.",
+    "Linux beta": "Linux bêta"
   },
   "es": {
     "Show in the file manager": "Mostrar en el gestor de archivos",
@@ -37,7 +38,8 @@
     "Open Hesper": "Abrir Hesper",
     "Stop and create notes": "Detener y crear las notas",
     "Settings…": "Ajustes…",
-    "A meeting is being recorded. Stop it and quit? Its notes won't be created now.": "Se está grabando una reunión. ¿Detenerla y salir? Sus notas no se crearán ahora."
+    "A meeting is being recorded. Stop it and quit? Its notes won't be created now.": "Se está grabando una reunión. ¿Detenerla y salir? Sus notas no se crearán ahora.",
+    "Linux beta": "Linux beta"
   },
   "pt": {
     "Show in the file manager": "Mostrar no gerenciador de arquivos",
@@ -57,7 +59,8 @@
     "Open Hesper": "Abrir o Hesper",
     "Stop and create notes": "Parar e criar as notas",
     "Settings…": "Configurações…",
-    "A meeting is being recorded. Stop it and quit? Its notes won't be created now.": "Uma reunião está sendo gravada. Pará-la e sair? As notas dela não serão criadas agora."
+    "A meeting is being recorded. Stop it and quit? Its notes won't be created now.": "Uma reunião está sendo gravada. Pará-la e sair? As notas dela não serão criadas agora.",
+    "Linux beta": "Linux beta"
   },
   "ja": {
     "Show in the file manager": "ファイルマネージャーで表示",
@@ -77,7 +80,8 @@
     "Open Hesper": "Hesper を開く",
     "Stop and create notes": "停止してメモを作成",
     "Settings…": "設定…",
-    "A meeting is being recorded. Stop it and quit? Its notes won't be created now.": "会議を録音中です。停止して終了しますか？メモは今は作成されません。"
+    "A meeting is being recorded. Stop it and quit? Its notes won't be created now.": "会議を録音中です。停止して終了しますか？メモは今は作成されません。",
+    "Linux beta": "Linux ベータ版"
   },
   "zh-Hans": {
     "Show in the file manager": "在文件管理器中显示",
@@ -97,6 +101,7 @@
     "Open Hesper": "打开 Hesper",
     "Stop and create notes": "停止并生成笔记",
     "Settings…": "设置…",
-    "A meeting is being recorded. Stop it and quit? Its notes won't be created now.": "正在录制会议。要停止并退出吗？它的笔记现在不会生成。"
+    "A meeting is being recorded. Stop it and quit? Its notes won't be created now.": "正在录制会议。要停止并退出吗？它的笔记现在不会生成。",
+    "Linux beta": "Linux 测试版"
   }
 }
