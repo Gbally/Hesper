@@ -271,7 +271,7 @@ Language forces one.
 ## Repository layout
 
 - `mac/App/` — the menu bar app (SwiftUI); `mac/Shared/` — audio capture; `mac/CLI/` — command-line recorder
-- `win/Hesper/` — the Windows app (C# .NET 8, WebView2); see [WINDOWS.md](WINDOWS.md)
+- `win/Hesper/` — the Windows app (C# .NET 10, WebView2); see [WINDOWS.md](WINDOWS.md)
 - `linux/` — the Linux app (the Windows app's shared code and pages, GTK + WebKitGTK); see [linux/README.md](linux/README.md)
 - `src/hesper/` — the engine: `transcribe` (Whisper), `diarize` (speakers), `transcript` (merge,
   echo removal), `summarize` (notes), `ask`, `dates`, `cli`

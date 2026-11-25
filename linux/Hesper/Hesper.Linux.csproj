@@ -6,13 +6,13 @@
        all reached through P/Invoke (Native.cs) — no NuGet packages. See linux/README.md. -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RootNamespace>Hesper</RootNamespace>
     <AssemblyName>Hesper</AssemblyName>
-    <Version>0.7.2</Version>
+    <Version>0.7.3</Version>
     <Company>Gbally</Company>
     <Product>Hesper</Product>
     <InvariantGlobalization>false</InvariantGlobalization>
@@ -47,6 +47,8 @@
     <EmbeddedResource Include="Ui\i18n-linux.json" LogicalName="ui/i18n-linux.json" />
     <EmbeddedResource Include="..\..\mac\Localization\*.json" LogicalName="i18n/%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\..\catalog\models.json" LogicalName="models.json" />
+    <!-- The license texts of what the AppImage carries (.NET, its runtime): Settings → About opens them -->
+    <EmbeddedResource Include="..\..\THIRD_PARTY_LICENSES.txt" LogicalName="THIRD_PARTY_LICENSES.txt" />
   </ItemGroup>
 
   <!-- The Python engine travels inside the app (engine.zip), as in the Windows exe -->
@@ -58,7 +60,7 @@
     </PropertyGroup>
     <ItemGroup>
       <EngineSource Include="$(RepoRoot)src\hesper\*.py" />
-      <EngineTop Include="$(RepoRoot)pyproject.toml;$(RepoRoot)uv.lock;$(RepoRoot)LICENSE;$(RepoRoot)THIRD_PARTY_NOTICES.md" />
+      <EngineTop Include="$(RepoRoot)pyproject.toml;$(RepoRoot)uv.lock;$(RepoRoot)LICENSE;$(RepoRoot)THIRD_PARTY_NOTICES.md;$(RepoRoot)THIRD_PARTY_LICENSES.txt" />
     </ItemGroup>
     <RemoveDir Directories="$(EngineStage)" />
     <Copy SourceFiles="@(EngineSource)" DestinationFolder="$(EngineStage)src\hesper" />

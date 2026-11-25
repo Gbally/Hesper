@@ -57,7 +57,7 @@ Present on Ubuntu, Debian, Fedora, Mint, openSUSE… desktops, mostly by default
 
 ## Build
 
-From the repository's root, with the .NET 8 SDK:
+From the repository's root, with the .NET 10 SDK:
 
 ```bash
 dotnet build linux/Hesper/Hesper.Linux.csproj          # compile (works on a Mac or Windows too)

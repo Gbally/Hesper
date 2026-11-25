@@ -273,7 +273,7 @@ sealed class AppModel
 
     /// Commands that only read: the others may change the meetings, read again then.
     static readonly HashSet<string> ReadOnly = ["state", "meeting", "search", "samples", "i18n", "osWords", "catalog", "devices", "voices",
-                                                "engineSize", "syncService", "notesModels", "refreshCalendar", "openMeeting", "openSettings",
+                                                "engineSize", "licenses", "syncService", "notesModels", "refreshCalendar", "openMeeting", "openSettings",
                                                 "pause", "mark", "liveNotes", "playMoment", "stopMoment", "detach", "keepOnTop", "dismissModelTip"];
 
     public JsonNode? Handle(string cmd, JsonObject a)
@@ -408,6 +408,7 @@ sealed class AppModel
             case "startSetup": _ = RunSetup(); return null;
             case "welcomed": Settings.Welcomed = true; Settings.Save(); Emit(); return null;
             case "openLog": Open(Paths.Log); return null;
+            case "licenses": Open(LicensesFile()); return null;
             case "showHome": Platform.ShowFolder(Paths.Home); return null;
             case "engineSize": return Uninstall.Size(Paths.Home);
             case "uninstall": Uninstall.Run(Settings.NotesFolder, B("notes")); QuitRequested?.Invoke(); return null;
@@ -1380,6 +1381,17 @@ sealed class AppModel
                 foreach (var (k, v) in table) words[k] = v?.DeepClone();
         }
         return words;
+    }
+
+    /// The license texts the app carries (THIRD_PARTY_LICENSES.txt, embedded), as a file to open.
+    static string LicensesFile()
+    {
+        var file = Path.Combine(Paths.Home, "THIRD_PARTY_LICENSES.txt");
+        Directory.CreateDirectory(Paths.Home);
+        using var s = typeof(AppModel).Assembly.GetManifestResourceStream("THIRD_PARTY_LICENSES.txt")!;
+        using var f = File.Create(file);
+        s.CopyTo(f);
+        return file;
     }
 
     public static void Open(string path)

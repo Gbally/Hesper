@@ -7,7 +7,7 @@
 #   BUILD=7 linux/build_appimage.sh    the build number the updater compares (0 for a build by hand)
 #   ARCH=aarch64 …                     an arm64 one (built on an arm64 machine)
 #
-# Needs the .NET 8 SDK (dotnet on PATH) and curl. appimagetool and the AppImage runtime are fetched
+# Needs the .NET 10 SDK (dotnet on PATH) and curl. appimagetool and the AppImage runtime are fetched
 # at pinned versions and checked by their SHA-256.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -50,6 +50,8 @@ test -x "$APPDIR/usr/lib/hesper/Hesper" || { echo "The build failed."; exit 1; }
 "$APPDIR/usr/lib/hesper/Hesper" --write-icon "$TOOLS/icons"
 install -D -m 644 "$TOOLS/icons/hesper.png" "$APPDIR/usr/share/icons/hicolor/256x256/apps/hesper.png"
 cp "$TOOLS/icons/hesper.png" "$APPDIR/hesper.png"
+# The licenses: Hesper's, the credits, and the full texts of what the AppImage carries (.NET, its runtime)
+install -D -m 644 -t "$APPDIR/usr/share/doc/hesper" LICENSE THIRD_PARTY_NOTICES.md THIRD_PARTY_LICENSES.txt
 ln -sf hesper.png "$APPDIR/.DirIcon"
 cat > "$APPDIR/hesper.desktop" <<'EOF'
 [Desktop Entry]

@@ -22,7 +22,7 @@ swiftc -O -parse-as-library -target arm64-apple-macos13.0 \
 echo "• Bundling engine"
 cp "$UV_BIN" "$APP/Contents/MacOS/uv"
 cp -R src pyproject.toml uv.lock .python-version "$APP/Contents/Resources/engine/"
-cp LICENSE THIRD_PARTY_NOTICES.md "$APP/Contents/Resources/"
+cp LICENSE THIRD_PARTY_NOTICES.md THIRD_PARTY_LICENSES.txt "$APP/Contents/Resources/"
 find "$APP/Contents/Resources/engine" -name __pycache__ -prune -exec rm -rf {} +
 
 echo "• Icon"
@@ -97,7 +97,7 @@ echo "• DMG"
 STAGE=build/dmg && mkdir -p "$STAGE"
 cp -R "$APP" "$STAGE/" && ln -s /Applications "$STAGE/Applications"
 cp mac/INSTALL.txt "$STAGE/How to install.txt"
-mkdir -p "$STAGE/Licenses" && cp LICENSE THIRD_PARTY_NOTICES.md PRIVACY.md "$STAGE/Licenses/"
+mkdir -p "$STAGE/Licenses" && cp LICENSE THIRD_PARTY_NOTICES.md THIRD_PARTY_LICENSES.txt PRIVACY.md "$STAGE/Licenses/"
 DMG="dist/Hesper-$VERSION.dmg"
 rm -f "$DMG"
 hdiutil create -quiet -volname Hesper -srcfolder "$STAGE" -ov -format UDZO "$DMG"

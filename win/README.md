@@ -1,6 +1,6 @@
 # Hesper for Windows (preview)
 
-A tray app (C# / .NET 8, WinForms, NAudio) around the same Python engine as the Mac app.
+A tray app (C# / .NET 10, WinForms, NAudio) around the same Python engine as the Mac app.
 
 Much of it is shared with the Linux app (`linux/`, see linux/README.md): the files that say so at
 their top, and `Ui/`. Keep Windows-only APIs out of those (they go through `Platform.cs`).
@@ -13,7 +13,7 @@ their top, and `Ui/`. Keep Windows-only APIs out of those (they go through `Plat
   uv and llama.cpp are pinned and checked by SHA-256. No admin rights, nothing system-wide.
 - `TrayApp.cs`, `SettingsForm.cs`, `Settings.cs` (settings.json → config.toml), `Brand.cs` (the icon).
 
-Build, with the .NET 8 SDK (a portable one is fine):
+Build, with the .NET 10 SDK (a portable one is fine):
 
 ```powershell
 cd win\Hesper
@@ -24,7 +24,7 @@ Tests without the tray: `Hesper.exe --record SECONDS [NOTES_FOLDER] [MIC_NAME]` 
 notes; `Hesper.exe --devices` lists the default devices and how loud each one is (for support);
 `Hesper.exe --write-icon Hesper.ico` redraws the icon. `HESPER_HOME` moves the data folder (a test setup).
 
-Publishing, as `scripts/release.sh` for the Mac (the .NET 8 SDK and `gh auth login` once):
+Publishing, as `scripts/release.sh` for the Mac (the .NET 10 SDK and `gh auth login` once):
 
 ```powershell
 .\scripts\release_windows.ps1 "What's new"     # prepare: build-cache\windows\Hesper-X.exe + latest-windows.json

@@ -1166,7 +1166,7 @@ async function drawPane() {
           <button class="btn small primary" data-url="${REPO}">${L("Star on GitHub")}</button></div>`,
         item(L("Source code"), `<a data-url="${REPO}">github.com/Gbally/Hesper</a>`),
         item(L("Bugs and ideas"), `<a data-url="${REPO}/issues/new">${L("Report a problem…")}</a>`),
-        item(L("License"), `<a data-url="${REPO}/blob/main/LICENSE">MIT</a> · <a data-url="${REPO}/blob/main/PRIVACY.md">${L("Privacy")}</a> · <a data-url="${REPO}/blob/main/THIRD_PARTY_NOTICES.md">${L("Third-party licenses")}</a>`),
+        item(L("License"), `<a data-url="${REPO}/blob/main/LICENSE">MIT</a> · <a data-url="${REPO}/blob/main/PRIVACY.md">${L("Privacy")}</a> · <a data-do="licenses">${L("Third-party licenses")}</a>`),
       ]) +
       group(tr("Credits"), [caption(tr("Speech: OpenAI Whisper (MIT), via faster-whisper. Notes: Qwen (Apache 2.0), via llama.cpp. Speaker separation: pyannote segmentation (MIT) and NVIDIA TitaNet (CC BY 4.0), via sherpa-onnx."))]) +
       `<div class="caption" style="text-align:center">${L("by Gbally")} · <a data-do="log">${L("Open the log")}</a></div>`;
@@ -1217,6 +1217,7 @@ function bindPane(el) {
     const d = t.closest("[data-do]")?.dataset.do;
     if (d === "openFolder") call("openFolder");
     if (d === "log") call("openLog");
+    if (d === "licenses") call("licenses");
     if (d === "showHome") call("showHome");
     if (d === "checkUpdate") call("checkUpdate");
     if (d === "notificationSettings") call("openNotificationSettings");

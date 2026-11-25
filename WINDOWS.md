@@ -270,3 +270,40 @@ does**:
 
 Worth porting back to Windows one day: after an update the new Hesper.exe may start while the old one
 still holds the single-instance mutex and quit at once (Linux waits for it: `--after-update`).
+
+### Next: 0.7.3 on all three platforms (asked 2026-11-25, Mac side done)
+
+Prepared on the Mac. Everything builds there (`build-cache/dn.sh build …`), but **the Windows app
+must be tested here before its release**: it is the first Windows build with the shared code
+above, and the first on .NET 10.
+
+What changed:
+- **.NET 10** (10.0.15, supported until November 2028; .NET 8's support ended on 2026-11-10).
+  Both projects target `net10.0…`; the CI uses `10.0.x`; `release_windows.ps1` now asks for a
+  10.x SDK. **Install the portable .NET 10 SDK in `MeetScribe\tools\dotnet`**, beside or instead of
+  the 8 one (`dotnet-install.ps1 -Channel 10.0 -InstallDir …\tools\dotnet`, or the zip from
+  dotnet.microsoft.com). The only build warning, MSB3277 (WindowsBase, from WebView2.Wpf), was
+  already there on .NET 8.
+- **License texts inside the apps.** The exe carries the .NET runtime, the WebView2 SDK and NAudio;
+  their licenses ask for their texts to travel with it. `THIRD_PARTY_LICENSES.txt` (made by
+  `scripts/licenses.sh` from the restored packages; run it again when .NET, WebView2 or NAudio
+  changes) is embedded, and also goes into engine.zip. Settings → About → "Third-party licenses"
+  now writes it to `%LOCALAPPDATA%\Hesper\THIRD_PARTY_LICENSES.txt` and opens it (Notepad),
+  instead of the GitHub page.
+- PyAV 18.1.0 → 18.1.1 in uv.lock: 18.1.0 was yanked for a memory corruption when decoding audio.
+- Version 0.7.3 (pyproject, both csproj, uv.lock).
+- The engine's notes change (the notes pass reuses the first part's reading) is MLX only: nothing
+  changes with llama.cpp.
+
+Test on the PC, then release:
+1. `uv sync --frozen` in the engine (PyAV 18.1.1), then a real meeting end to end: record (mic and
+   the other people), stop, notes with speakers and to-dos.
+2. Import an audio file (PyAV decodes it).
+3. Settings: every pane opens. About → Third-party licenses opens the text in Notepad. Folder and
+   file pickers, Show in Explorer, the Recycle Bin (delete a meeting), the hotkeys, the "mark"
+   sound, keep awake while recording (`powercfg /requests` lists Hesper).
+4. Outlook calendar: the meetings appear; the calendar link (ICS) still works.
+5. Update: an installed 0.7.2 offers 0.7.3 once it is published. Watch the mutex point above (the
+   new exe starting while the old one quits).
+6. Release: `.\scripts\release_windows.ps1 "What's new"`, then `-Publish`. It adds the exe to the
+   GitHub release v0.7.3, and creates that release if the Mac hasn't published yet.

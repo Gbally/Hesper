@@ -9,6 +9,11 @@ which keep their own licenses.
 - **Everything else** is downloaded on first setup (the engine) or when a model is chosen (the AI
   models), from its own publisher, with its own license.
 
+The full license texts of what ships inside the apps are in
+[THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt), which each app carries: in the Mac app's
+Resources and the DMG's Licenses folder; in Windows and Linux, Settings → About → Third-party
+licenses.
+
 ## AI models
 
 | Model | Used for | License | Source |

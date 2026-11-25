@@ -11,7 +11,7 @@
 #                                                 latest-windows-beta.json, offered only to apps with
 #                                                 Settings -> About -> "Receive test versions" on.
 #
-# The version is pyproject.toml's; the build number goes up by one from the feed's. Needs the .NET 8
+# The version is pyproject.toml's; the build number goes up by one from the feed's. Needs the .NET 10
 # SDK (dotnet on PATH, or MeetScribe\tools\dotnet) and the GitHub CLI logged in once (gh auth login).
 param([string]$Notes = "", [switch]$Publish, [switch]$Beta)
 $ErrorActionPreference = "Stop"
@@ -43,7 +43,7 @@ function Read-Feed($path) { if (Test-Path $path) { Get-Content $path -Raw | Conv
 
 if (-not $Publish) {
     if (git status --porcelain) { throw "Commit your changes first." }
-    if (-not $Dotnet -or -not (& $Dotnet --list-sdks)) { throw "The .NET 8 SDK isn't installed (dotnet, or MeetScribe\tools\dotnet)." }
+    if (-not $Dotnet -or -not ((& $Dotnet --list-sdks) -match '^10\.')) { throw "The .NET 10 SDK isn't installed (dotnet, or MeetScribe\tools\dotnet)." }
     $Version = (Select-String -Path pyproject.toml -Pattern '^version = "(.*)"').Matches[0].Groups[1].Value
     # The next build number: one more than the release and test feeds published so far
     $Builds = @("latest-windows.json", "latest-windows-beta.json") | ForEach-Object { (Read-Feed $_).build } | Where-Object { $_ }
