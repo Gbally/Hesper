@@ -79,6 +79,20 @@ select.field { padding: 5px 6px; }
 select.field option { background: var(--surface); color: var(--text); }
 .check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .check input { accent-color: var(--star); width: 15px; height: 15px; margin: 0; }
+/* Linux (WebKitGTK) fills unticked radio buttons and boxes with the text's colour: drawn here instead */
+html.linux .check input, html.linux .todo input {
+  -webkit-appearance: none; appearance: none; flex: none; cursor: pointer;
+  border: 1.5px solid var(--secondary); background: var(--surface) no-repeat center;
+}
+html.linux .check input[type=radio] { border-radius: 50%; }
+html.linux .check input[type=checkbox], html.linux .todo input { border-radius: 4px; }
+html.linux .check input:checked, html.linux .todo input:checked { border-color: var(--star); background-color: var(--star); }
+html.linux .check input[type=radio]:checked { background-image: radial-gradient(circle, var(--dusk-ink) 0 2.6px, transparent 3.2px); }
+html.linux .check input[type=checkbox]:checked, html.linux .todo input:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.6 6.3l2.3 2.3 4.6-5' fill='none' stroke='%231B1F2E' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+}
+html.linux .check input:disabled, html.linux .todo input:disabled { opacity: .45; cursor: default; }
 .toggle { position: relative; width: 34px; height: 20px; flex: none; }
 .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
 .toggle span { position: absolute; inset: 0; background: var(--line); border-radius: 10px; transition: .15s; cursor: pointer; }

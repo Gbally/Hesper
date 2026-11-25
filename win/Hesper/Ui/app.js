@@ -103,7 +103,9 @@ const ICONS = {
 const icon = (name, cls = "icon") => `<svg class="${cls}" viewBox="0 0 16 16">${ICONS[name]}</svg>`;
 
 let state = null;
-async function refresh() { state = await call("state"); }
+async function refresh() { state = await call("state"); markPlatform(); }
+// <html class="linux">: app.css draws some controls itself there
+function markPlatform() { document.documentElement.classList.toggle("linux", linux()); }
 
 // Menus (⋯): items = [{label, action, danger, disabled} | "-"]
 function openMenu(anchor, items, x = null, y = null) {
@@ -1403,7 +1405,7 @@ function render() {
 
 handlers.state = async data => {
   const before = JSON.stringify(state?.settings);
-  if (data) state = data; else await refresh();
+  if (data) { state = data; markPlatform(); } else await refresh();
   if (!state.stopping && state.recording?.id !== stoppingId) { stoppingId = null; discarding = false; }  // stopped
   if (JSON.stringify(state.settings) !== before) await loadLanguage(state.settings);
   const { page, arg } = route();
