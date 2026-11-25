@@ -1,0 +1,7 @@
+{
+    "version": "0.7.2",
+    "build": 1,
+    "url": "https://github.com/Gbally/Hesper/releases/download/v0.7.2/Hesper-0.7.2-x86_64.AppImage",
+    "sha256": "7f5c4a86b94730ee988a2b2826952f6125d51de2724b24aca2d8b506f2b52041",
+    "notes": "The first Linux version (beta): still being tested, please report bugs in GitHub's issues."
+}
