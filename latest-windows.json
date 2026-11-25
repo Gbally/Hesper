@@ -1,7 +1,7 @@
 {
-    "version":  "0.7.2",
-    "build":  3,
-    "url":  "https://github.com/Gbally/Hesper/releases/download/v0.7.2/Hesper-0.7.2.exe",
-    "sha256":  "41721ae92e9dbb51833cbea9ae7d911efc827c15c4d340b98aea0c9dbde6a9bc",
-    "notes":  "Pause and resume a recording; mark important moments (Ctrl+Alt+M) and type your own notes while recording. In each meeting: marked moments, talk time, and where each to-do was said, with the audio. A follow-up e-mail written for you, a Friday recap of your week, a calendar link (ICS) for Google Calendar or the new Outlook, hesper:// links, and the window can stay open on its own."
+    "version":  "0.7.3",
+    "build":  4,
+    "url":  "https://github.com/Gbally/Hesper/releases/download/v0.7.3/Hesper-0.7.3.exe",
+    "sha256":  "36ed1b6e944c1159b26c6e91f0939980927eb20475c367d0a4e9a4c03675dfb1",
+    "notes":  "Moves to .NET 10, which keeps receiving security fixes. A fixed audio decoder for imported files. Settings → About → Third-party licenses opens the license texts of the software the app includes."
 }
