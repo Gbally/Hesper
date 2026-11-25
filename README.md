@@ -124,6 +124,18 @@ it about 5× faster; without one everything runs on the processor.
 2. The welcome takes you through the same steps as on the Mac. Hesper lives in the notification
    area and updates itself.
 
+### Linux (preview)
+
+Requirements: a 64-bit desktop Linux (Ubuntu 22.04 or newer, Debian 12, Fedora, Mint…) with
+PipeWire or PulseAudio, 16 GB memory, ~8 GB free disk space. An NVIDIA graphics card makes it faster.
+
+1. Download `Hesper-<version>-x86_64.AppImage` from the [latest release](https://github.com/Gbally/Hesper/releases/latest),
+   make it executable (`chmod +x`, or Properties → Allow executing as a program) and open it.
+2. The same welcome as on the Mac and Windows. Hesper adds itself to your applications menu, sits in
+   the top bar when your desktop shows tray icons (else in its own window), and updates itself.
+
+Details, and what each desktop needs: [linux/README.md](linux/README.md).
+
  Always tell the other participants that you're
 recording, and follow your company's rules.
 
@@ -255,6 +267,7 @@ Language forces one.
 
 - `mac/App/` — the menu bar app (SwiftUI); `mac/Shared/` — audio capture; `mac/CLI/` — command-line recorder
 - `win/Hesper/` — the Windows app (C# .NET 8, WebView2); see [WINDOWS.md](WINDOWS.md)
+- `linux/` — the Linux app (the Windows app's shared code and pages, GTK + WebKitGTK); see [linux/README.md](linux/README.md)
 - `src/hesper/` — the engine: `transcribe` (Whisper), `diarize` (speakers), `transcript` (merge,
   echo removal), `summarize` (notes), `ask`, `dates`, `cli`
 - `scripts/` — build, release, translations; `catalog/models.json` — tested models

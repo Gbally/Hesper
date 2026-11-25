@@ -49,6 +49,9 @@ sealed class Recorder : IDisposable
         return devices.EnumerateAudioEndPoints(flow, DeviceState.Active).Select(d => d.FriendlyName).ToList();
     }
 
+    /// The microphones (input) or the speakers whose sound can be recorded, for Settings.
+    public static List<string> DeviceNames(bool input) => DeviceNames(input ? DataFlow.Capture : DataFlow.Render);
+
     /// Throws only when nothing at all can be recorded.
     public void Start()
     {

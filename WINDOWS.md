@@ -240,3 +240,33 @@ New Python deps (icalendar, recurring-ical-events): `uv sync` picks them up with
 9. **Better model tip**: when the catalog's recommended notes model (windows section) has a higher
    `quality` than the one picked, a card on Home: "Better notes with X" / Switch (or Download and
    switch) / Not now (remembered per recommended model).
+
+### The Linux app shares the Windows app's code (branch `linux`, 2026-11-24)
+
+The Linux app (`linux/`, see linux/README.md) compiles the Windows app's shared files and shows its
+pages. To make that possible, done on the Mac and checked to build (`dotnet build
+win/Hesper/Hesper.csproj -p:EnableWindowsTargeting=true`), **without changing what the Windows app
+does**:
+
+- **Shared files** (compiled into both apps; each says so at its top): `AppModel.cs`,
+  `CalendarEvent.cs` (new: `CalendarEvent` and the calendar's questions, as `CalendarSource`, which
+  `OutlookCalendar` now extends), `Catalog.cs`, `Common.cs` (new: `Share`, `Export`, `Storage`,
+  `Retention`, `Updater.Check`, `Uninstall.Size`, `LinkPipe`, moved out of Services.cs and
+  Identity.cs), `EngineRunner.cs`, `I18n.cs`, `Meetings.cs`, `Paths.cs`, `Settings.cs`, `Setup.cs`,
+  and `Ui/`. **Keep Windows-only APIs out of them**: AppModel's Windows calls now go through
+  `Platform.cs` (new: the clipboard, the folder / file pickers, Explorer, the Recycle Bin, the "mark"
+  sound, SetThreadExecutionState — the same code as before, moved) and `UiTimer` (WinForms' Timer
+  here). Services.cs keeps the Windows halves of the partial classes (`Share.OutlookPath`,
+  `Storage.OneDriveAccounts`, `Updater.Install`, `Uninstall.Run`) and `Startup`.
+- Small additions: `Recorder.DeviceNames(bool input)`; AppModel's state has `platform` ("windows")
+  and `desktop` (null on Windows); a command `osWords`; Paths, Hardware, EngineRunner and Setup
+  branch on `OperatingSystem.IsWindows()` (Linux: `venv/bin/python`, `LD_LIBRARY_PATH`, uv's and
+  llama.cpp's Linux tarballs); `Storage.SyncService` also knows Nextcloud.
+- app.js: `linux()` / `desktop()` choose Linux's wording and hide Windows-only settings there; on
+  Windows nothing changes. Linux's own texts are in `linux/Hesper/Ui/i18n-linux.json`.
+- pyproject's `cuda` extra also covers Linux (uv.lock regenerated: only Linux wheels added).
+- `.github/workflows/linux.yml` builds the Windows app on every push touching these files, so a
+  change that breaks either app shows there.
+
+Worth porting back to Windows one day: after an update the new Hesper.exe may start while the old one
+still holds the single-instance mutex and quit at once (Linux waits for it: `--after-update`).

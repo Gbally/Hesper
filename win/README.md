@@ -2,6 +2,9 @@
 
 A tray app (C# / .NET 8, WinForms, NAudio) around the same Python engine as the Mac app.
 
+Much of it is shared with the Linux app (`linux/`, see linux/README.md): the files that say so at
+their top, and `Ui/`. Keep Windows-only APIs out of those (they go through `Platform.cs`).
+
 - `Recorder.cs`: microphone + PC sound (WASAPI loopback) → `mic.wav` / `system.wav`, 16 kHz mono,
   one timeline. Windows' default devices (not the "communications" ones), or the ones chosen in Settings.
 - `EngineRunner.cs`: `python -m hesper …` with Hesper's environment; reads `@@step` / `@@progress`.

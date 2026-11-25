@@ -3,6 +3,8 @@ using System.Text.Json.Nodes;
 
 namespace Hesper;
 
+// Shared with the Linux app (linux/Hesper).
+
 /// Meeting folders in the notes folder (as mac/App/Meetings.swift reads them):
 ///   meeting.json (title, start), mic/system .wav or .caf, transcript.json/.md, notes.json/.md
 ///   (written by the engine), todo.json (the action items ticked off), error.txt.

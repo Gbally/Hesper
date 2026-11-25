@@ -6,6 +6,7 @@ namespace Hesper;
 
 /// Runs the Python engine (python -m hesper …) with Hesper's environment, and reads its progress
 /// lines: "@@step {"key": "Transcribing (%@ min)", "args": ["9"]}" and "@@progress 0.42".
+/// Shared with the Linux app (linux/Hesper).
 static class EngineRunner
 {
     /// OutOfMemory: the errors show a model didn't fit (in the GPU's memory or the PC's).
@@ -16,10 +17,13 @@ static class EngineRunner
 
     public static Dictionary<string, string?> Environment()
     {
-        var site = Path.Combine(Paths.Venv, "Lib", "site-packages", "nvidia");
+        var windows = OperatingSystem.IsWindows();
+        var site = Path.Combine(SitePackages(), "nvidia");
         // faster-whisper's CUDA libraries (cuBLAS, cuDNN) come as wheels: their DLLs must be on PATH
-        var cuda = new[] { "cublas", "cudnn", "cuda_nvrtc" }.Select(p => Path.Combine(site, p, "bin")).Where(Directory.Exists);
-        return new()
+        // (Windows), their .so files on LD_LIBRARY_PATH (Linux, with llama.cpp's own libraries)
+        var cuda = (windows ? new[] { "cublas", "cudnn", "cuda_nvrtc" } : ["cublas", "cudnn", "cuda_nvrtc", "cuda_runtime"])
+            .Select(p => Path.Combine(site, p, windows ? "bin" : "lib")).Where(Directory.Exists);
+        var env = new Dictionary<string, string?>
         {
             ["HESPER_HOME"] = Paths.Home,
             ["HF_HOME"] = Path.Combine(Paths.Home, "hf"),
@@ -34,8 +38,20 @@ static class EngineRunner
             ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1",
             ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1",  // Windows without Developer Mode: copies instead, fine
             ["TOKENIZERS_PARALLELISM"] = "false",
-            ["PATH"] = string.Join(';', cuda.Append(System.Environment.GetEnvironmentVariable("PATH") ?? "")),
         };
+        if (windows) env["PATH"] = string.Join(';', cuda.Append(System.Environment.GetEnvironmentVariable("PATH") ?? ""));
+        else env["LD_LIBRARY_PATH"] = string.Join(':', cuda.Append(Path.Combine(Paths.Home, "models", "llama.cpp"))
+                                                         .Append(System.Environment.GetEnvironmentVariable("LD_LIBRARY_PATH") ?? "").Where(p => p.Length > 0));
+        return env;
+    }
+
+    /// The engine's Python packages: venv\Lib\site-packages, or venv/lib/python3.12/site-packages.
+    static string SitePackages()
+    {
+        if (OperatingSystem.IsWindows()) return Path.Combine(Paths.Venv, "Lib", "site-packages");
+        var lib = Path.Combine(Paths.Venv, "lib");
+        var python = Directory.Exists(lib) ? Directory.GetDirectories(lib, "python3*").FirstOrDefault() : null;
+        return Path.Combine(python ?? Path.Combine(lib, "python3.12"), "site-packages");
     }
 
     /// Runs exe with args; onLine gets each stdout line (on a worker thread).

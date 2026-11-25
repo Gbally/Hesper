@@ -1,0 +1,160 @@
+# The Linux app (linux/): builds its AppImage on GitHub's Linux machines (free for public
+# repositories), checks that the Windows app still builds (they share code), then tests what can be
+# tested without a screen, a microphone or a GPU: every page opens (pictures in the artifact), a
+# recording from a silent sound server, the engine's tests on Linux.
+#
+# Publishing (Actions → Linux app → Run workflow, with a release tag such as v0.7.3): the AppImage
+# and the update feed (latest-linux.json) are added to that GitHub release; then
+# `scripts/linux_feed.sh v0.7.3` puts the feed in the repository, to commit and push.
+name: Linux app
+
+on:
+  push:
+    branches: [main, linux]
+    paths:
+      - "linux/**"
+      - "win/Hesper/**"
+      - "src/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "mac/Localization/**"
+      - "catalog/models.json"
+      - "eval/test_rules.py"
+      - ".github/workflows/linux.yml"
+  pull_request:
+    paths:
+      - "linux/**"
+      - "win/Hesper/**"
+      - "src/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "mac/Localization/**"
+      - "catalog/models.json"
+      - "eval/test_rules.py"
+      - ".github/workflows/linux.yml"
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Publish to this GitHub release (v0.7.3…); empty: build and test only"
+        default: ""
+      beta:
+        description: "A test version (latest-linux-beta.json, offered with “Receive test versions”)"
+        type: boolean
+        default: false
+      notes:
+        description: "What's new (shown in the app's update offer)"
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # The oldest supported Ubuntu: an AppImage built on it runs on newer distributions too
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write  # only to add the AppImage to a release (Run workflow with a tag)
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73  # v6.1.0
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: The Windows app still builds (its shared code is the Linux app's too)
+        run: dotnet build win/Hesper/Hesper.csproj -c Release -p:EnableWindowsTargeting=true -nologo -v q
+
+      - name: Build number
+        id: build
+        env:
+          RELEASE: ${{ inputs.release }}
+        run: |
+          # When publishing: one more than the Linux feeds' (the updater compares it); else 0
+          if [ -n "$RELEASE" ]; then
+            n=$(cat latest-linux.json latest-linux-beta.json 2>/dev/null | sed -n 's/.*"build": *\([0-9]*\).*/\1/p' | sort -n | tail -1)
+            echo "build=$(( ${n:-0} + 1 ))" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: AppImage
+        run: BUILD=${{ steps.build.outputs.build }} linux/build_appimage.sh
+
+      - name: Desktop libraries for the tests
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libgtk-3-0 libwebkit2gtk-4.1-0 xvfb dbus pulseaudio pulseaudio-utils libnotify4 \
+            libayatana-appindicator3-1 > /dev/null
+
+      - name: Every page opens, light and dark, in English and in French
+        env:
+          HESPER_HOME: ${{ runner.temp }}/home
+          WEBKIT_DISABLE_DMABUF_RENDERER: "1"
+        run: |
+          xvfb-run -a dbus-run-session -- build-cache/linux-x86_64/Hesper.AppDir/AppRun --capture "$RUNNER_TEMP/screens"
+          xvfb-run -a dbus-run-session -- build-cache/linux-x86_64/Hesper.AppDir/AppRun --capture "$RUNNER_TEMP/screens" fr
+
+      - name: Recording, from a silent sound server
+        env:
+          HESPER_HOME: ${{ runner.temp }}/home
+        run: |
+          pulseaudio -D --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=hesper_test > /dev/null
+          pactl set-default-sink hesper_test
+          app=build-cache/linux-x86_64/Hesper.AppDir/AppRun
+          "$app" --devices
+          "$app" --record 3 "$RUNNER_TEMP/notes" --no-process | tee "$RUNNER_TEMP/record.txt"
+          grep -Eq "mic.wav: (2|3)\." "$RUNNER_TEMP/record.txt"
+          grep -Eq "system.wav: (2|3)\." "$RUNNER_TEMP/record.txt"
+
+      - name: The engine's tests, on Linux
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/uv.tar.gz" https://github.com/astral-sh/uv/releases/download/0.13.6/uv-x86_64-unknown-linux-gnu.tar.gz
+          echo "f29c3e94ffabd7e6f3ba521dba169a9b7ec12100bf3257087f0f24f6123f3645  $RUNNER_TEMP/uv.tar.gz" | sha256sum -c --quiet
+          tar -xzf "$RUNNER_TEMP/uv.tar.gz" -C "$RUNNER_TEMP"
+          uv="$RUNNER_TEMP/uv-x86_64-unknown-linux-gnu/uv"
+          "$uv" sync --frozen --python 3.12 --quiet
+          .venv/bin/python eval/test_rules.py
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: always()
+        with:
+          name: hesper-linux
+          path: |
+            dist/linux/*.AppImage
+            ${{ runner.temp }}/screens/
+          if-no-files-found: ignore
+
+      - name: Publish to the release
+        if: inputs.release != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE: ${{ inputs.release }}
+          BETA: ${{ inputs.beta }}
+          NOTES: ${{ inputs.notes }}
+          BUILD: ${{ steps.build.outputs.build }}
+        run: |
+          file=$(ls dist/linux/Hesper-*-x86_64.AppImage)
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml | head -1)
+          label=$version; feed=latest-linux.json; pre=""
+          if [ "$BETA" = "true" ]; then label="$version-test.$BUILD"; feed=latest-linux-beta.json; pre="--prerelease"; fi
+          gh release view "$RELEASE" > /dev/null 2>&1 || gh release create "$RELEASE" --title "Hesper ${RELEASE#v}" --notes "$NOTES" $pre
+          gh release upload "$RELEASE" "$file" --clobber
+          python3 - "$feed" "$label" "$BUILD" "https://github.com/${GITHUB_REPOSITORY}/releases/download/$RELEASE/$(basename "$file")" \
+                       "$(sha256sum "$file" | cut -d' ' -f1)" "$NOTES" <<'EOF'
+          import json, sys
+          feed, label, build, url, sha, notes = sys.argv[1:]
+          json.dump({"version": label, "build": int(build), "url": url, "sha256": sha, "notes": notes}, open(feed, "w"), indent=4)
+          EOF
+          gh release upload "$RELEASE" "$feed" --clobber
+          {
+            echo "### Published Hesper $label (build $BUILD) for Linux"
+            echo "Now put the feed in the repository: \`scripts/linux_feed.sh $RELEASE\`$( [ "$BETA" = "true" ] && echo " --beta"), then commit and push it."
+            echo '```json'; cat "$feed"; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

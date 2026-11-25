@@ -5,7 +5,7 @@ using System.Text.Json.Nodes;
 
 namespace Hesper;
 
-/// This PC: its NVIDIA GPU (name, memory) if it has one, and its RAM.
+/// This PC: its NVIDIA GPU (name, memory) if it has one, and its RAM. Shared with the Linux app.
 static class Hardware
 {
     static (string Name, double VramGB)? gpu;
@@ -17,8 +17,8 @@ static class Hardware
         {
             if (probed) return gpu;
             probed = true;
-            var smi = Path.Combine(Environment.SystemDirectory, "nvidia-smi.exe");
-            if (!File.Exists(smi)) return gpu = null;
+            var smi = OperatingSystem.IsWindows() ? Path.Combine(Environment.SystemDirectory, "nvidia-smi.exe") : OnPath("nvidia-smi");
+            if (smi == null || !File.Exists(smi)) return gpu = null;
             try
             {
                 using var p = Process.Start(new ProcessStartInfo(smi, "--query-gpu=name,memory.total --format=csv,noheader,nounits")
@@ -40,8 +40,18 @@ static class Hardware
 
     public static double RamGB
     {
-        get { var s = new MemoryStatus { Length = (uint)Marshal.SizeOf<MemoryStatus>() }; return GlobalMemoryStatusEx(ref s) ? s.Total / 1073741824.0 : 8; }
+        get
+        {
+            if (!OperatingSystem.IsWindows()) return GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / 1073741824.0;
+            var s = new MemoryStatus { Length = (uint)Marshal.SizeOf<MemoryStatus>() };
+            return GlobalMemoryStatusEx(ref s) ? s.Total / 1073741824.0 : 8;
+        }
     }
+
+    /// A program in one of PATH's folders (Linux), or null.
+    public static string? OnPath(string name) =>
+        (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Select(d => Path.Combine(d, name)).FirstOrDefault(File.Exists);
 
     public static string Summary =>
         (Gpu is { } g ? $"{g.Name} ({g.VramGB:0} GB) · " : "") + $"{Math.Round(RamGB):0} GB RAM";

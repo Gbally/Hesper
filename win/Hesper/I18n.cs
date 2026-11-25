@@ -5,7 +5,8 @@ using System.Text.RegularExpressions;
 namespace Hesper;
 
 /// The app's texts outside its pages (notifications, error.txt) in the app's language, with the
-/// pages' translations: the Mac's (English text → translation, "Mac" said "PC"), then Windows' own.
+/// pages' translations: the Mac's (English text → translation, "Mac" said "PC"), then Linux's and
+/// Windows' own. Shared with the Linux app (linux/Hesper).
 static class I18n
 {
     static readonly string[] Supported = ["fr", "es", "pt", "ja", "zh-Hans"];
@@ -48,8 +49,9 @@ static class I18n
             }
             using (var mac = asm.GetManifestResourceStream($"i18n/{lang}.json"))
                 if (mac != null) Add(JsonNode.Parse(mac));
-            using (var win = asm.GetManifestResourceStream("ui/i18n-windows.json"))
-                if (win != null) Add(JsonNode.Parse(win)?[lang]);
+            foreach (var own in new[] { "ui/i18n-linux.json", "ui/i18n-windows.json" })  // the Linux app has both
+                using (var table = asm.GetManifestResourceStream(own))
+                    if (table != null) Add(JsonNode.Parse(table)?[lang]);
         }
         loaded = (lang, words);
         return words;

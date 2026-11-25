@@ -1,0 +1,72 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Hesper for Linux (preview): the Windows app's shared code (win/Hesper: the model, meetings,
+       settings, engine runner, setup…) and pages (win/Hesper/Ui), with a Linux host: GTK 3 and
+       WebKitGTK for the windows, an AppIndicator icon, PulseAudio / PipeWire for the sound, libnotify,
+       all reached through P/Invoke (Native.cs) — no NuGet packages. See linux/README.md. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>Hesper</RootNamespace>
+    <AssemblyName>Hesper</AssemblyName>
+    <Version>0.7.2</Version>
+    <Company>Gbally</Company>
+    <Product>Hesper</Product>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
+    <DefineConstants>$(DefineConstants);LINUX</DefineConstants>
+    <!-- The shared files were written for Windows: CA1416 (Windows-only APIs) is checked by hand there -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The Windows app gets these from WinForms' implicit usings -->
+    <Using Include="System.Drawing" />
+  </ItemGroup>
+
+  <!-- The Windows app's code that isn't Windows-only (each file says so at its top) -->
+  <ItemGroup>
+    <Compile Include="..\..\win\Hesper\AppModel.cs" Link="Shared\AppModel.cs" />
+    <Compile Include="..\..\win\Hesper\CalendarEvent.cs" Link="Shared\CalendarEvent.cs" />
+    <Compile Include="..\..\win\Hesper\Catalog.cs" Link="Shared\Catalog.cs" />
+    <Compile Include="..\..\win\Hesper\Common.cs" Link="Shared\Common.cs" />
+    <Compile Include="..\..\win\Hesper\EngineRunner.cs" Link="Shared\EngineRunner.cs" />
+    <Compile Include="..\..\win\Hesper\I18n.cs" Link="Shared\I18n.cs" />
+    <Compile Include="..\..\win\Hesper\Meetings.cs" Link="Shared\Meetings.cs" />
+    <Compile Include="..\..\win\Hesper\Paths.cs" Link="Shared\Paths.cs" />
+    <Compile Include="..\..\win\Hesper\Settings.cs" Link="Shared\Settings.cs" />
+    <Compile Include="..\..\win\Hesper\Setup.cs" Link="Shared\Setup.cs" />
+  </ItemGroup>
+
+  <!-- The pages (the Windows app's, plus Linux's own texts) and the Mac app's translations -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\win\Hesper\Ui\**\*" LogicalName="ui/%(RecursiveDir)%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Ui\i18n-linux.json" LogicalName="ui/i18n-linux.json" />
+    <EmbeddedResource Include="..\..\mac\Localization\*.json" LogicalName="i18n/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\..\catalog\models.json" LogicalName="models.json" />
+  </ItemGroup>
+
+  <!-- The Python engine travels inside the app (engine.zip), as in the Windows exe -->
+  <Target Name="EngineZip" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <RepoRoot>$(MSBuildThisFileDirectory)..\..\</RepoRoot>
+      <EngineStage>$(MSBuildThisFileDirectory)$(IntermediateOutputPath)engine\</EngineStage>
+      <EngineZip>$(MSBuildThisFileDirectory)$(IntermediateOutputPath)engine.zip</EngineZip>
+    </PropertyGroup>
+    <ItemGroup>
+      <EngineSource Include="$(RepoRoot)src\hesper\*.py" />
+      <EngineTop Include="$(RepoRoot)pyproject.toml;$(RepoRoot)uv.lock;$(RepoRoot)LICENSE;$(RepoRoot)THIRD_PARTY_NOTICES.md" />
+    </ItemGroup>
+    <RemoveDir Directories="$(EngineStage)" />
+    <Copy SourceFiles="@(EngineSource)" DestinationFolder="$(EngineStage)src\hesper" />
+    <Copy SourceFiles="@(EngineTop)" DestinationFolder="$(EngineStage)" />
+    <ZipDirectory SourceDirectory="$(EngineStage)" DestinationFile="$(EngineZip)" Overwrite="true" />
+    <ItemGroup>
+      <EmbeddedResource Include="$(EngineZip)" LogicalName="engine.zip" />
+    </ItemGroup>
+  </Target>
+
+</Project>

@@ -27,8 +27,11 @@ host?.addEventListener("message", e => {
 // ---------- translations (the Mac app's: English text → translation) ----------
 let words = {};
 const LANGS = { en: "English", fr: "Français", es: "Español", pt: "Português", ja: "日本語", "zh-Hans": "简体中文" };
-// Windows-only texts (English key → translation), in i18n-windows.json; the Mac files have the rest
+// Windows-only texts (English key → translation), in i18n-windows.json, and Linux's in
+// i18n-linux.json (the Linux app, linux/Hesper, shows these pages too); the Mac files have the rest
 let winWords = {};
+const linux = () => state?.platform === "linux";
+const desktop = () => state?.desktop ?? {};  // Linux: {tray, wayland, onTop, hotkeys, calls}
 function tr(key, ...args) {
   let s = words[key] ?? winWords[key] ?? key;
   // Numbered slots ("%2$@ … %1$@": a language that says them in another order), else in order;
@@ -42,7 +45,8 @@ async function loadLanguage(settings) {
   const want = settings?.AppLanguage || navigator.language;
   lang = want.startsWith("zh") ? "zh-Hans" : Object.keys(LANGS).find(l => want.toLowerCase().startsWith(l)) ?? "en";
   words = lang === "en" ? {} : (await call("i18n", { lang })) ?? {};
-  winWords = lang === "en" ? {} : (await fetch("i18n-windows.json").then(r => r.json()).catch(() => ({})))[lang] ?? {};
+  winWords = lang === "en" ? {} : linux() ? (await call("osWords", { lang })) ?? {}
+           : (await fetch("i18n-windows.json").then(r => r.json()).catch(() => ({})))[lang] ?? {};
   document.documentElement.lang = lang;
 }
 
@@ -166,7 +170,7 @@ function renderHome() {
         <div class="caption">${esc(new Date().toLocaleDateString(locale(), { day: "numeric", month: "long" }))}</div>`}
       </div>
       ${upd ? `<button class="badge" id="update" title="${L("A new version of Hesper is available")}">${L("Update")}</button>` : ""}
-      ${homeView !== "home" ? "" : detachedWindow()
+      ${homeView !== "home" || (linux() && !desktop().onTop) ? "" : detachedWindow()
         ? `<button class="icon-btn ${onTop ? "on" : ""}" id="pin" title="${L(onTop ? "Stop keeping this window on top" : "Keep this window on top")}">${icon("pin")}</button>`
         : `<button class="icon-btn" id="detach" title="${L("Open in a window (close it to go back to the notification area)")}">${icon("window")}</button>`}
       <button class="icon-btn" id="gear" title="${L("Settings")}">${icon("gear")}</button>
@@ -570,7 +574,7 @@ async function onContentMenu(e) {
   openMenu(row, [
     { label: tr("Open"), action: () => call("openMeeting", { id }) },
     { label: tr("Email the notes…"), action: () => call("email", { id, subject: tr("Notes: %@", meetingTitle(m)), labels: shareLabels() }), disabled: !m.hasNotes },
-    { label: tr("Show in Explorer"), action: () => call("showInExplorer", { id }) },
+    { label: tr(linux() ? "Show in the file manager" : "Show in Explorer"), action: () => call("showInExplorer", { id }) },
     "-",
     { label: tr("Delete…"), danger: true, disabled: busy, action: async () => {
       if (await ask(tr("Delete “%@”?", meetingTitle(m)), tr("The notes, transcript and audio go to the Trash."), tr("Move to Trash"), true)) call("delete", { id });
@@ -619,7 +623,7 @@ function renderMeeting() {
   $("#more") && ($("#more").onclick = e => { e.stopPropagation(); openMenu($("#more"), [
     { label: tr("Open notes"), action: () => call("openFile", { id: m.id, name: "notes.md" }), disabled: !n },
     { label: tr("Open transcript"), action: () => call("openFile", { id: m.id, name: "transcript.md" }), disabled: !m.hasTranscript },
-    { label: tr("Show in Explorer"), action: () => call("showInExplorer", { id: m.id }) },
+    { label: tr(linux() ? "Show in the file manager" : "Show in Explorer"), action: () => call("showInExplorer", { id: m.id }) },
     "-",
     { label: tr("Name the speakers…"), action: () => { view = "speakers"; renderMeeting(); }, disabled: !n || busy },
     { label: tr("Email the notes…"), action: () => call("email", { id: m.id, subject: tr("Notes: %@", meetingTitle(m)), labels: shareLabels() }), disabled: !n },
@@ -937,12 +941,14 @@ async function drawPane() {
   const s = state.settings, el = $("#pane");
   const busy = !!(state.recording || state.job);
   if (pane === "general") el.innerHTML =
-    group(tr("Language"), [item(L("App language"), select("AppLanguage", [["", tr("Same as Windows")], ...Object.entries(LANGS)], s.AppLanguage))],
+    group(tr("Language"), [item(L("App language"), select("AppLanguage", [["", tr(linux() ? "Same as the system" : "Same as Windows")], ...Object.entries(LANGS)], s.AppLanguage))],
           tr("Other languages show in English. Meeting notes follow the meeting's language (Settings → Notes).")) +
     group(tr("You"), [item(L("Your name"), text("MyName", s.MyName))], tr("Used for your voice in transcripts and to find the to-dos that are yours.")) +
     group(tr("Shortcut and startup"), [
-      item(L("Start / stop recording"), hotkeyField("Hotkey", s.Hotkey)),
-      item(L("Mark an important moment"), hotkeyField("MarkHotkey", s.MarkHotkey), L("Works only while recording: the notes then cover what was said in the minute before.")),
+      ...(linux() && !desktop().hotkeys
+        ? [caption(tr("On Wayland, apps can't have a keyboard shortcut of their own. Add one in your system's keyboard settings with the command xdg-open hesper://toggle (start / stop) or xdg-open hesper://mark (mark a moment)."))]
+        : [item(L("Start / stop recording"), hotkeyField("Hotkey", s.Hotkey)),
+           item(L("Mark an important moment"), hotkeyField("MarkHotkey", s.MarkHotkey), L("Works only while recording: the notes then cover what was said in the minute before."))]),
       item(P("Open Hesper at login"), toggle("@login", state.launchAtLogin)),
     ]) +
     group(tr("Email"), [
@@ -953,7 +959,8 @@ async function drawPane() {
     ]) +
     group(tr("Shortcuts and automation"), [
       item(L("Allow hesper:// links to control recording"), toggle("AllowLinks", s.AllowLinks)),
-      caption(tr("Use them from a desktop shortcut, a Stream Deck, AutoHotkey or a terminal (start hesper://record). A recording started by a link is always announced.")),
+      caption(linux() ? tr("Use them from a keyboard shortcut of your desktop, a Stream Deck or a terminal (xdg-open hesper://record). A recording started by a link is always announced.")
+                      : tr("Use them from a desktop shortcut, a Stream Deck, AutoHotkey or a terminal (start hesper://record). A recording started by a link is always announced.")),
       `<div class="item mono caption selectable links ${s.AllowLinks ? "" : "off"}">${["record", "stop", "pause", "resume", "mark", "note?text=…", "todos", "week"].map(a => `hesper://${a}`).join("<br>")}</div>`,
     ]);
   else if (pane === "recording") {
@@ -961,27 +968,30 @@ async function drawPane() {
     const langs = s.Languages.split(",").filter(Boolean);
     el.innerHTML =
       group(tr("Audio"), [
-        item(L("Record"), select("AppOnly", [["", pc(tr("All Mac audio"))], ["teams", tr("Microsoft Teams only")]], s.AppOnly),
-             state.appLoopback ? "" : esc(tr("Recording one app only needs Windows 11."))),
-        item(L("Microphone"), select("Microphone", [["", tr("Windows default")], ...devices.mics.map(d => [d, d])], s.Microphone)),
-        item(L("PC sound from"), select("Speakers", [["", tr("Windows default")], ...devices.speakers.map(d => [d, d])], s.Speakers),
+        ...(linux() ? [] : [item(L("Record"), select("AppOnly", [["", pc(tr("All Mac audio"))], ["teams", tr("Microsoft Teams only")]], s.AppOnly),
+             state.appLoopback ? "" : esc(tr("Recording one app only needs Windows 11.")))]),
+        item(L("Microphone"), select("Microphone", [["", tr(linux() ? "System default" : "Windows default")], ...devices.mics.map(d => [d, d])], s.Microphone)),
+        item(L("PC sound from"), select("Speakers", [["", tr(linux() ? "System default" : "Windows default")], ...devices.speakers.map(d => [d, d])], s.Speakers),
              L("Hesper records your microphone and what your PC plays (the other people in a call).")),
-        item(L("Record calls automatically"), toggle("AutoRecord", s.AutoRecord),
-             L("Starts when Teams, Zoom or a browser call uses the microphone, and stops when the call ends.")),
+        item(L("Record calls automatically"), toggle("AutoRecord", s.AutoRecord, linux() && !desktop().calls),
+             linux() && !desktop().calls ? L("Needs pactl (the pulseaudio-utils package) to notice calls.")
+                                         : L("Starts when Teams, Zoom or a browser call uses the microphone, and stops when the call ends.")),
       ]) +
       group(tr("Calendar"), [
         item(L("Use my calendar for meeting names & attendees"), toggle("UseCalendar", s.UseCalendar && state.calendar?.available, !state.calendar?.available),
              L("Names meetings and their attendees, and reminds you of open to-dos before the next one.")),
-        caption(state.calendar?.outlook ? tr("Read from Outlook on this PC (the classic app: the new Outlook can't be read by other apps).")
+        ...(linux() ? (s.CalendarLink ? [] : [caption(tr("Paste your calendar's link below: Hesper then names meetings and their attendees."))])
+          : [caption(state.calendar?.outlook ? tr("Read from Outlook on this PC (the classic app: the new Outlook can't be read by other apps).")
               : state.calendar?.installed ? tr("Outlook is installed but has no account set up on this PC.")
-              : tr("Needs the classic Outlook app on this PC (the new Outlook can't be read by other apps).")),
+              : tr("Needs the classic Outlook app on this PC (the new Outlook can't be read by other apps)."))]),
         ...(state.calendar?.error ? [`<div class="item error-text">${esc(state.calendar.error)}</div>`] : []),
         `<div class="item"><input class="field grow" id="calendar-link" placeholder="https://calendar.google.com/…/basic.ics" value="${esc(s.CalendarLink)}" spellcheck="false">
           <button class="btn small" data-do="calendarLink">${L("Use")}</button>${s.CalendarLink ? `<button class="btn small" data-do="calendarLinkRemove">${L("Remove")}</button>` : ""}</div>`,
         ...(state.calendarLink?.count != null ? [`<div class="item caption" style="color:var(--ok)">${esc(state.calendarLink.count === 1 ? tr("Read: 1 event from yesterday to the day after tomorrow.")
                                                   : tr("Read: %@ events from yesterday to the day after tomorrow.", state.calendarLink.count))}</div>`]
             : state.calendarLink?.error ? [`<div class="item caption" style="color:var(--warn)">${esc(tr("Couldn't read it: %@", state.calendarLink.error))}</div>`] : []),
-        caption(tr("For a calendar Hesper can't read from Outlook: Google Calendar (Settings → your calendar → “Secret address in iCal format”), the new Outlook (Settings → Calendar → Shared calendars → Publish), iCloud… Only this link is read, every 15 minutes.")),
+        caption(linux() ? tr("Your calendar's link: Google Calendar (Settings → your calendar → “Secret address in iCal format”), Outlook (Settings → Calendar → Shared calendars → Publish), Nextcloud, iCloud… Only this link is read, every 15 minutes.")
+                        : tr("For a calendar Hesper can't read from Outlook: Google Calendar (Settings → your calendar → “Secret address in iCal format”), the new Outlook (Settings → Calendar → Shared calendars → Publish), iCloud… Only this link is read, every 15 minutes.")),
       ]) +
       group(tr("Languages"), [
         `<div class="item"><div class="label">${L("Languages spoken in your meetings")}</div></div>`,
@@ -1088,7 +1098,8 @@ async function drawPane() {
     item(L("The day before my to-dos are due"), toggle("DueReminders", s.DueReminders)),
     item(L("Friday afternoon: my week's meetings and to-dos"), toggle("WeeklyRecap", s.WeeklyRecap)),
     item(L("Try"), `<button class="btn small" data-do="testNotification">${L("Send a test notification")}</button>`),
-  ], tr("Windows shows them in the notification area; to change how, see Windows Settings → System → Notifications."));
+  ], linux() ? tr("Your desktop shows them; to change how, see your system's notification settings.")
+             : tr("Windows shows them in the notification area; to change how, see Windows Settings → System → Notifications."));
   else if (pane === "privacy") {
     engineBytes ??= await call("engineSize");
     const accounts = state.oneDrive ?? [];
@@ -1101,7 +1112,7 @@ async function drawPane() {
       group(tr("Where notes are saved"), [
         `<div class="item radios">
           <label class="check"><input type="radio" name="storage" data-storage="local" ${s.Storage === "local" ? "checked" : ""} ${busy ? "disabled" : ""}>${P("This Mac only")}</label>
-          <label class="check"><input type="radio" name="storage" data-storage="onedrive" ${s.Storage === "onedrive" ? "checked" : ""} ${busy ? "disabled" : ""}>${esc(accounts.length ? "OneDrive" : pc(tr("OneDrive (not set up on this Mac)")))}</label>
+          ${linux() ? "" : `<label class="check"><input type="radio" name="storage" data-storage="onedrive" ${s.Storage === "onedrive" ? "checked" : ""} ${busy ? "disabled" : ""}>${esc(accounts.length ? "OneDrive" : pc(tr("OneDrive (not set up on this Mac)")))}</label>`}
           <label class="check"><input type="radio" name="storage" data-storage="custom" ${s.Storage === "custom" ? "checked" : ""} ${busy ? "disabled" : ""}>${L("Another folder…")}</label></div>`,
         ...(s.Storage === "onedrive" && accounts.length > 1 ? [item(L("Account"), `<select class="field" id="onedrive-account">${accounts.map(a =>
             `<option value="${esc(a.path)}" ${a.path === s.OneDrivePath ? "selected" : ""}>${esc(a.name)}</option>`).join("")}</select>`)] : []),
@@ -1116,7 +1127,8 @@ async function drawPane() {
       group(tr("Audio recordings"), [item(L("Delete audio recordings"), select("AudioRetentionDays", RETENTION.map(([d, l]) => [d, tr(l)]), s.AudioRetentionDays))],
             tr("Notes and transcripts are kept. The audio — including the short voice samples used to name speakers — is deleted.")) +
       group(tr("Remove Hesper"), [
-        caption(engineBytes ? tr("The engine, the AI models and your settings use %@ (in %LOCALAPPDATA%\\Hesper). This removes everything, then Hesper itself.", fmtBytes(engineBytes))
+        caption(engineBytes ? linux() ? tr("The engine, the AI models and your settings use %@ (in %@). This removes everything, then Hesper itself.", fmtBytes(engineBytes), (state.home ?? "").replace(/^\/home\/[^/]+/, "~"))
+                            : tr("The engine, the AI models and your settings use %@ (in %LOCALAPPDATA%\\Hesper). This removes everything, then Hesper itself.", fmtBytes(engineBytes))
                             : tr("Measuring the engine and AI models…")),
         item(L("Also move my meeting notes to the Trash"), `<label class="toggle"><input type="checkbox" id="remove-notes"><span></span></label>`),
         item(L("Uninstall"), `<button class="btn small danger" id="uninstall" ${busy || state.setup ? "disabled" : ""}>${L("Remove Hesper…")}</button>`),
@@ -1254,7 +1266,7 @@ addEventListener("keydown", async e => {
   if (["Control", "Alt", "Shift", "Meta"].includes(e.key)) return;
   if (!e.ctrlKey && !e.altKey && !e.metaKey) return;
   const key = e.code.startsWith("Key") ? e.code.slice(3) : e.code.startsWith("Digit") ? e.code.slice(5) : e.key.length === 1 ? e.key.toUpperCase() : e.code;
-  const combo = [e.ctrlKey && "Ctrl", e.altKey && "Alt", e.shiftKey && "Shift", e.metaKey && "Win", key].filter(Boolean).join("+");
+  const combo = [e.ctrlKey && "Ctrl", e.altKey && "Alt", e.shiftKey && "Shift", e.metaKey && (linux() ? "Super" : "Win"), key].filter(Boolean).join("+");
   const which = hotkeyRecording;
   hotkeyRecording = false;
   await save({ [which]: combo });
@@ -1309,20 +1321,22 @@ function renderWelcome() {
         ${point("wave", "Records Teams, Zoom and Meet calls — your voice and the other participants'.")}
         ${point("person", "Writes a transcript with who said what, then a summary, decisions and to-dos.")}
         ${point("lock", "Everything runs on this Mac: no account, no cloud, no subscription.")}</div>
-      ${group("", [item(L("App language"), select("AppLanguage", [["", tr("Same as Windows")], ...Object.entries(LANGS)], s.AppLanguage))])}
+      ${group("", [item(L("App language"), select("AppLanguage", [["", tr(linux() ? "Same as the system" : "Same as Windows")], ...Object.entries(LANGS)], s.AppLanguage))])}
       ${summary ? `<div class="caption">${esc(summary)}</div>` : ""}`,
     () => group(tr("You"), [item(L("Your name"), text("MyName", s.MyName))], tr("Used for your voice in transcripts and to find the to-dos that are yours.")) +
       `<div><div class="group-title">${esc(tr("Languages spoken in your meetings"))}</div><div class="group"><div class="langs">${
         Object.entries(SPOKEN).slice(0, 9).map(([c, l]) => `<label class="check"><input type="checkbox" data-lang="${c}" ${s.Languages.split(",").includes(c) ? "checked" : ""}>${esc(languageName(c))}</label>`).join("")}</div></div></div>` +
       group("", [item(L("Write the notes in"), select("NotesLanguage", [["auto", tr("Same as the meeting")], ...Object.entries(SPOKEN).map(([c, l]) => [l, languageName(c)])], s.NotesLanguage))]),
     () => group(tr("Audio"), [
-        item(L("Microphone"), select("Microphone", [["", tr("Windows default")], ...(devices?.mics ?? []).map(d => [d, d])], s.Microphone)),
-        item(L("PC sound from"), select("Speakers", [["", tr("Windows default")], ...(devices?.speakers ?? []).map(d => [d, d])], s.Speakers)),
+        item(L("Microphone"), select("Microphone", [["", tr(linux() ? "System default" : "Windows default")], ...(devices?.mics ?? []).map(d => [d, d])], s.Microphone)),
+        item(L("PC sound from"), select("Speakers", [["", tr(linux() ? "System default" : "Windows default")], ...(devices?.speakers ?? []).map(d => [d, d])], s.Speakers)),
       ]) + `<div class="caption">${esc(tr("Hesper records your microphone and what your PC plays (the other people in a call)."))}</div>`,
     () => `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding-top:6px">
       <div style="width:56px;height:56px;color:var(--accent)">${glyph("currentColor")}</div>
       <div class="title2">${esc(tr("You're all set"))}</div>
-      <div class="secondary" style="max-width:440px">${esc(tr("Click Hesper's icon in the notification area (bottom right, maybe under ^), then the record button when a meeting starts. Your notes appear there when it ends."))}</div></div>` +
+      <div class="secondary" style="max-width:440px">${esc(!linux() ? tr("Click Hesper's icon in the notification area (bottom right, maybe under ^), then the record button when a meeting starts. Your notes appear there when it ends.")
+        : desktop().tray ? tr("Click Hesper's icon in the top bar (or the system tray), then “Open Hesper” and the record button when a meeting starts. Your notes appear there when it ends.")
+        : tr("Hesper opens in its own window: click the record button when a meeting starts. Your notes appear there when it ends. Closing the window keeps Hesper running; open it again from your apps."))}</div></div>` +
       group("", [
         item(L("Start / stop recording"), `<span class="mono">${esc(s.Hotkey || tr("None"))}</span>`),
         item(L("Record calls automatically"), toggle("AutoRecord", s.AutoRecord)),

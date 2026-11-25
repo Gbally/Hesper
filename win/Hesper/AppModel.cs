@@ -3,13 +3,12 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using Microsoft.VisualBasic.FileIO;
 
 namespace Hesper;
 
 /// What the app is doing (setting up, recording, the job queue) and what its pages may ask of it.
 /// Runs on the UI thread; pages get its state as JSON (State()) and call Handle(command, args).
-/// As mac/App/AppModel.swift.
+/// As mac/App/AppModel.swift. Shared with the Linux app (linux/Hesper): what differs goes through Platform.
 sealed class AppModel
 {
     public AppSettings Settings { get; private set; } = AppSettings.Load();
@@ -48,7 +47,7 @@ sealed class AppModel
     string recordingTemplate = "";
     bool autoStarted, starting, stopping, resumed;
     readonly CallMonitor calls = new();
-    readonly System.Windows.Forms.Timer minute = new() { Interval = 60_000 }, second = new() { Interval = 1000 };
+    readonly UiTimer minute = new() { Interval = 60_000 }, second = new() { Interval = 1000 };
     DateTime lastCleanup = DateTime.MinValue, lastCatalog = DateTime.MinValue, lastUpdateCheck = DateTime.MinValue;
     Catalog catalog = Catalog.Load();
     readonly OutlookCalendar calendar;
@@ -87,7 +86,7 @@ sealed class AppModel
         Updater.CleanUp();
         PinModels();
         Player.Changed += Emit;
-        var first = new System.Windows.Forms.Timer { Interval = 5000 };
+        var first = new UiTimer { Interval = 5000 };
         first.Tick += (_, _) => { first.Dispose(); ResumeUnprocessed(); EveryMinute(); _ = RefreshCalendarLink(force: true); };
         first.Start();
     }
@@ -153,6 +152,8 @@ sealed class AppModel
         ["home"] = Paths.Home,
         ["calendar"] = CalendarState(),
         ["appLoopback"] = ProcessLoopbackCapture.Supported,
+        ["platform"] = Platform.Name,
+        ["desktop"] = Platform.Desktop(),
     };
 
     /// The meetings as the list shows them: read again at most every 10 s, or when something here
@@ -271,7 +272,7 @@ sealed class AppModel
     }
 
     /// Commands that only read: the others may change the meetings, read again then.
-    static readonly HashSet<string> ReadOnly = ["state", "meeting", "search", "samples", "i18n", "catalog", "devices", "voices",
+    static readonly HashSet<string> ReadOnly = ["state", "meeting", "search", "samples", "i18n", "osWords", "catalog", "devices", "voices",
                                                 "engineSize", "syncService", "notesModels", "refreshCalendar", "openMeeting", "openSettings",
                                                 "pause", "mark", "liveNotes", "playMoment", "stopMoment", "detach", "keepOnTop", "dismissModelTip"];
 
@@ -338,13 +339,13 @@ sealed class AppModel
             case "clearAnswer": answer = null; Emit(); return null;
             case "openFolder": Open(Folder() ?? Settings.NotesFolder); return null;
             case "showInExplorer":
-                if (Folder() is { } sx) System.Diagnostics.Process.Start("explorer.exe", $"\"{sx}\"");
+                if (Folder() is { } sx) Platform.ShowFolder(sx);
                 return null;
             case "openFile":
                 if (Folder() is { } d && S("name") is "notes.md" or "transcript.md") Open(Path.Combine(d, S("name")));
                 return null;
             case "copyNotes":
-                if (Meetings.Detail(Settings.NotesFolder, S("id")) is { } cm) Clipboard.SetText(Share.Text(cm, a["labels"] as JsonObject));
+                if (Meetings.Detail(Settings.NotesFolder, S("id")) is { } cm) Platform.CopyText(Share.Text(cm, a["labels"] as JsonObject));
                 return null;
             case "email":
                 if (Meetings.Detail(Settings.NotesFolder, S("id")) is { } em)
@@ -355,7 +356,7 @@ sealed class AppModel
                 var dir = Settings.ExportFolder.Length > 0 ? Settings.ExportFolder : ChooseFolder(S("title"));
                 if (dir != null && Meetings.Detail(Settings.NotesFolder, S("id")) is { } ex && Folder() is { } exf
                     && Export.Save(exf, ex, dir) is { } file)
-                    System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{file}\"");
+                    Platform.ShowFile(file);
                 return null;
             }
             case "regenerate":
@@ -385,15 +386,15 @@ sealed class AppModel
             case "delete":
                 if (Folder() is { } del && Recorder?.Folder != del && !IsBusy(del))
                 {
-                    FileSystem.DeleteDirectory(del, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
+                    Platform.Trash(del);
                     Emit();
                 }
                 return null;
             case "devices":
                 return new JsonObject
                 {
-                    ["mics"] = new JsonArray(Recorder.DeviceNames(NAudio.CoreAudioApi.DataFlow.Capture).Select(n => (JsonNode)n).ToArray()),
-                    ["speakers"] = new JsonArray(Recorder.DeviceNames(NAudio.CoreAudioApi.DataFlow.Render).Select(n => (JsonNode)n).ToArray()),
+                    ["mics"] = new JsonArray(Recorder.DeviceNames(input: true).Select(n => (JsonNode)n).ToArray()),
+                    ["speakers"] = new JsonArray(Recorder.DeviceNames(input: false).Select(n => (JsonNode)n).ToArray()),
                 };
             case "saveSettings": SaveSettings(a["settings"].Deserialize<AppSettings>() ?? Settings); return null;
             case "setLaunchAtLogin": Startup.Enabled = B("on"); Emit(); return null;
@@ -403,17 +404,18 @@ sealed class AppModel
             case "voices": return new JsonArray(Voices().Select(v => (JsonNode)v).ToArray());
             case "forgetVoice": ForgetVoice(S("name")); return null;
             case "i18n": return Translations(S("lang"));
+            case "osWords": return OsWords(S("lang"));
             case "startSetup": _ = RunSetup(); return null;
             case "welcomed": Settings.Welcomed = true; Settings.Save(); Emit(); return null;
             case "openLog": Open(Paths.Log); return null;
-            case "showHome": System.Diagnostics.Process.Start("explorer.exe", $"\"{Paths.Home}\""); return null;
+            case "showHome": Platform.ShowFolder(Paths.Home); return null;
             case "engineSize": return Uninstall.Size(Paths.Home);
             case "uninstall": Uninstall.Run(Settings.NotesFolder, B("notes")); QuitRequested?.Invoke(); return null;
             case "openUrl":
                 if (S("url").StartsWith("https://github.com/Gbally/Hesper")) Share.Open(S("url"));
                 return null;
             // Notifications
-            case "openNotificationSettings": Share.Open("ms-settings:notifications"); return null;
+            case "openNotificationSettings": Platform.OpenNotificationSettings(); return null;
             case "testNotification": Notify?.Invoke("Hesper", T("Notifications work."), null); return null;
             // AI models
             case "catalog":
@@ -449,11 +451,7 @@ sealed class AppModel
         Emit();
     }
 
-    static string? ChooseFolder(string title)
-    {
-        using var dlg = new FolderBrowserDialog { UseDescriptionForTitle = true, Description = title.Length > 0 ? title : "Choose a folder" };
-        return dlg.ShowDialog() == DialogResult.OK ? dlg.SelectedPath : null;
-    }
+    static string? ChooseFolder(string title) => Platform.ChooseFolder(title.Length > 0 ? title : "Choose a folder");
 
     /// Settings → Privacy: where the notes go. move: null = say how many meetings would move first.
     JsonNode? ChangeStorage(string storage, string path, bool? move)
@@ -599,7 +597,7 @@ sealed class AppModel
         recordingEvent = null;
         if (discard)
         {
-            try { FileSystem.DeleteDirectory(rec.Folder, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin); }  // as the Mac's Trash
+            try { Platform.Trash(rec.Folder); }  // as the Mac's Trash
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or OperationCanceledException) { }
         }
         else
@@ -627,14 +625,10 @@ sealed class AppModel
     void ProcessRecording(string folder) =>
         Enqueue(new("process", folder, ProcessArgs(folder, noSummary: LaterNotes.Read(folder) is { Polish: false }), NewMeeting: true));
 
-    [DllImport("kernel32.dll")]
-    static extern uint SetThreadExecutionState(uint flags);
-
-    /// While recording or processing, Windows doesn't put the PC to sleep (a webinar listened to
-    /// without touching anything, a lunch break during the notes); the screen may still turn off.
-    /// As the Mac's beginActivity. Always called on the UI thread: the setting is per thread.
-    void KeepAwake() =>
-        SetThreadExecutionState(0x80000000u /* ES_CONTINUOUS */ | (Recorder != null || current != null || queue.Count > 0 ? 0x1u /* ES_SYSTEM_REQUIRED */ : 0u));
+    /// While recording or processing, the PC doesn't go to sleep (a webinar listened to without
+    /// touching anything, a lunch break during the notes); the screen may still turn off.
+    /// As the Mac's beginActivity. Always called on the UI thread (on Windows the setting is per thread).
+    void KeepAwake() => Platform.KeepAwake(Recorder != null || current != null || queue.Count > 0);
 
     /// The calendar says the meeting ended 5 minutes ago: a signal that it's over, and a question.
     void CheckEventEnd(Recorder rec)
@@ -926,14 +920,10 @@ sealed class AppModel
     /// ⋯ → Transcribe an audio file… / Import a transcript…: `hesper process FILE` makes its meeting.
     void ImportFile(bool transcript, string title)
     {
-        using var dlg = new OpenFileDialog
-        {
-            Title = title,
-            Filter = transcript ? "Transcripts|*.vtt;*.srt;*.sbv;*.docx;*.txt;*.md"
-                                : "Audio, video|*.m4a;*.mp3;*.wav;*.mp4;*.mov;*.webm;*.ogg;*.flac;*.aac;*.caf;*.wma|*.*|*.*",
-        };
-        if (dlg.ShowDialog() != DialogResult.OK) return;
-        Enqueue(new("import", Settings.NotesFolder, ["process", dlg.FileName, .. Settings.NotesTiming == "later" ? new[] { "--no-summary" } : []]));
+        string[] types = transcript ? ["vtt", "srt", "sbv", "docx", "txt", "md"]
+                                    : ["m4a", "mp3", "wav", "mp4", "mov", "webm", "ogg", "flac", "aac", "caf", "wma"];
+        if (Platform.ChooseFile(title, transcript ? "Transcripts" : "Audio, video", types, anyFile: !transcript) is not { } file) return;
+        Enqueue(new("import", Settings.NotesFolder, ["process", file, .. Settings.NotesTiming == "later" ? new[] { "--no-summary" } : []]));
     }
 
     // MARK: every minute: reminders, old audio, notes written later, the catalog, updates
@@ -1119,7 +1109,7 @@ sealed class AppModel
             Directory.CreateDirectory(copy);
             foreach (var f in new[] { "transcript.json", "transcript.md", "speakers.json", "clips.json", "meeting.json" })
                 if (File.Exists(Path.Combine(folder, f))) File.Copy(Path.Combine(folder, f), Path.Combine(copy, f));
-            if (Directory.Exists(Path.Combine(folder, "clips"))) FileSystem.CopyDirectory(Path.Combine(folder, "clips"), Path.Combine(copy, "clips"));
+            if (Directory.Exists(Path.Combine(folder, "clips"))) Platform.CopyDirectory(Path.Combine(folder, "clips"), Path.Combine(copy, "clips"));
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
@@ -1148,7 +1138,7 @@ sealed class AppModel
         if (Recorder is not { Paused: false } r) return;
         marks.Add(Math.Round(r.Elapsed.TotalSeconds, 1));
         Meetings.SetInfo(r.Folder, "marks", new JsonArray(marks.Select(m => (JsonNode)m).ToArray()));
-        System.Media.SystemSounds.Asterisk.Play();
+        Platform.Ding();
         Emit();
     }
 
@@ -1377,6 +1367,19 @@ sealed class AppModel
     {
         using var s = typeof(AppModel).Assembly.GetManifestResourceStream($"i18n/{lang}.json");
         return s == null ? null : JsonNode.Parse(s);
+    }
+
+    /// The Linux and Windows apps' own texts (Ui/i18n-*.json) in one language.
+    static JsonObject OsWords(string lang)
+    {
+        var words = new JsonObject();
+        foreach (var file in new[] { "ui/i18n-windows.json", "ui/i18n-linux.json" })  // Linux's last: they win
+        {
+            using var s = typeof(AppModel).Assembly.GetManifestResourceStream(file);
+            if (s != null && JsonNode.Parse(s)?[lang] is JsonObject table)
+                foreach (var (k, v) in table) words[k] = v?.DeepClone();
+        }
+        return words;
     }
 
     public static void Open(string path)

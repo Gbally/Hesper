@@ -3,6 +3,8 @@ using System.Text.Json;
 
 namespace Hesper;
 
+// Shared with the Linux app (linux/Hesper).
+
 /// A model that ran out of memory (as the Mac's MemoryWarning): the speech model, else the notes
 /// model; failed: a meeting couldn't be processed, else its notes were written in parts, more slowly.
 sealed class MemoryWarning

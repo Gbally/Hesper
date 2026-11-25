@@ -1,7 +1,7 @@
 [project]
 name = "hesper"
 version = "0.7.2"
-description = "Local meeting recorder, transcriber and note-taker for macOS and Windows"
+description = "Local meeting recorder, transcriber and note-taker for macOS, Windows and Linux"
 requires-python = ">=3.12"
 dependencies = [
     # Mac: MLX (Apple silicon). Other PCs: faster-whisper, and llama.cpp's server for the notes
@@ -20,11 +20,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Windows with an NVIDIA GPU: the CUDA libraries faster-whisper (CTranslate2) needs; the app adds
-# them with `uv sync --extra cuda` only when it finds one.
+# Windows and Linux with an NVIDIA GPU: the CUDA libraries faster-whisper (CTranslate2) needs; the
+# app adds them with `uv sync --extra cuda` only when it finds one.
 cuda = [
     "nvidia-cublas-cu12==12.9.2.10; sys_platform == 'win32'",  # 12.9.3 has no Windows wheel
-    "nvidia-cudnn-cu12>=9.28,<10; sys_platform == 'win32'",
+    "nvidia-cublas-cu12>=12.9.2.10,<13; sys_platform == 'linux'",
+    "nvidia-cudnn-cu12>=9.28,<10; sys_platform == 'win32' or sys_platform == 'linux'",
 ]
 
 [project.scripts]

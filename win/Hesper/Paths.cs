@@ -2,8 +2,9 @@ using System.Text;
 
 namespace Hesper;
 
-/// Where Hesper keeps its things: everything in %LOCALAPPDATA%\Hesper (the engine, Python, models,
-/// settings), the meetings in the notes folder. HESPER_HOME moves the first (a test setup).
+/// Where Hesper keeps its things: everything in %LOCALAPPDATA%\Hesper (~/.local/share/Hesper on
+/// Linux: the engine, Python, models, settings), the meetings in the notes folder. HESPER_HOME moves
+/// the first (a test setup). Shared with the Linux app (linux/Hesper).
 static class Paths
 {
     public static string Home { get; } = Environment.GetEnvironmentVariable("HESPER_HOME")
@@ -11,8 +12,8 @@ static class Paths
 
     public static string Engine => Path.Combine(Home, "engine");          // the Python engine's source (src/, pyproject.toml, uv.lock)
     public static string Venv => Path.Combine(Home, "venv");
-    public static string Python => Path.Combine(Venv, "Scripts", "python.exe");
-    public static string Uv => Path.Combine(Home, "uv", "uv.exe");
+    public static string Python => OperatingSystem.IsWindows() ? Path.Combine(Venv, "Scripts", "python.exe") : Path.Combine(Venv, "bin", "python");
+    public static string Uv => Path.Combine(Home, "uv", OperatingSystem.IsWindows() ? "uv.exe" : "uv");
     public static string ConfigFile => Path.Combine(Home, "config.toml");
     public static string Log => Path.Combine(Home, "hesper.log");
     /// Recordings until they're processed, then they move to the notes folder: a synced one
@@ -20,13 +21,34 @@ static class Paths
     public static string Recordings => Path.Combine(Home, "recordings");
 
     /// Documents\MeetingNotes; %USERPROFILE%\MeetingNotes when Documents is synced by OneDrive
-    /// (meetings stay on this PC unless the user picks a synced folder).
+    /// (meetings stay on this PC unless the user picks a synced folder). Linux: the Documents folder's.
     public static string DefaultNotesFolder()
     {
+        if (!OperatingSystem.IsWindows()) return Path.Combine(XdgDocuments(), "MeetingNotes");
         var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         var synced = docs.Contains("OneDrive", StringComparison.OrdinalIgnoreCase);
         var root = synced ? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) : docs;
         return Path.Combine(root, "MeetingNotes");
+    }
+
+    /// Linux: the Documents folder in the user's language (XDG_DOCUMENTS_DIR in user-dirs.dirs), else
+    /// ~/Documents, else the home folder.
+    static string XdgDocuments()
+    {
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var config = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME") is { Length: > 0 } c ? c : Path.Combine(home, ".config");
+        try
+        {
+            foreach (var line in File.ReadLines(Path.Combine(config, "user-dirs.dirs")))
+                if (line.StartsWith("XDG_DOCUMENTS_DIR="))
+                {
+                    var dir = line["XDG_DOCUMENTS_DIR=".Length..].Trim().Trim('"').Replace("$HOME", home);
+                    if (dir.Length > 0 && dir != home && Directory.Exists(dir)) return dir;
+                }
+        }
+        catch (IOException) { }
+        var docs = Path.Combine(home, "Documents");
+        return Directory.Exists(docs) ? docs : home;
     }
 
     /// A new meeting folder, named as the engine names them (hesper.cli.new_session_dir).
