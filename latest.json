@@ -1,7 +1,7 @@
 {
- "version": "0.7.2",
- "build": 151,
- "url": "https://github.com/Gbally/Hesper/releases/download/v0.7.2/Hesper-0.7.2.dmg",
- "sha256": "d486a0f484d6835d6132949a8b677039d4718719cc7139862003221527c93b18",
- "notes": "Pause and resume a recording; mark important moments (\u2303\u2325M from any app) and type your own notes while recording. In each meeting: marked moments, talk time, and where each to-do was said, with the audio. A follow-up e-mail written for you, a Friday recap of your week, a calendar link (ICS) for Google Calendar or the new Outlook, hesper:// links for Shortcuts or Raycast, and the window can be detached and kept on top."
+ "version": "0.7.3",
+ "build": 164,
+ "url": "https://github.com/Gbally/Hesper/releases/download/v0.7.3/Hesper-0.7.3.dmg",
+ "sha256": "606e8efc5be78181c5a66403e042a77872146c5d93843616b19a1267a5e85c24",
+ "notes": "Notes are written faster for meetings longer than about 12 minutes: the start of the meeting is read once. The app now carries the license texts of the software it includes."
 }
