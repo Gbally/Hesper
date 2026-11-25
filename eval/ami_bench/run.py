@@ -89,7 +89,7 @@ class CachedLLM(S.LLM):
                 m.scale = scale if on else 0.0
             self.adapter_on, self._read = on, None  # the transcript read with the other weights
 
-    def chat(self, prompt, max_tokens=2500, on_token=None, prose=False, temperature=None, transcript=None, last=False):
+    def chat(self, prompt, max_tokens=2500, on_token=None, prose=False, temperature=None, transcript=None, last=False, keep_start=False):
         model = self.cfg.llm_model + (f"+{ADAPTER}" if a.adapter and self.adapter_on else "")  # the cache tells them apart
         if not MAC:
             model += f"@{device().kind}"  # llama.cpp on the GPU or the CPU
@@ -98,7 +98,7 @@ class CachedLLM(S.LLM):
         f = CACHE / f"{key}.txt"
         if f.exists():
             return f.read_text(encoding="utf-8")
-        out = super().chat(prompt, max_tokens, on_token, prose, temperature, transcript, last)
+        out = super().chat(prompt, max_tokens, on_token, prose, temperature, transcript, last, keep_start)
         f.write_text(out, encoding="utf-8")
         return out
 

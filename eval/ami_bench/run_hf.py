@@ -62,7 +62,7 @@ class HFLLM(S.LLM):
         return len(tok.encode(text, add_special_tokens=False))
 
     @torch.no_grad()
-    def chat(self, prompt, max_tokens=2500, on_token=None, prose=False, temperature=None, transcript=None, last=False):
+    def chat(self, prompt, max_tokens=2500, on_token=None, prose=False, temperature=None, transcript=None, last=False, keep_start=False):
         temperature = S.TEMPERATURE if temperature is None else temperature
         on = bool(a.adapter) and self.adapter
         key = hashlib.sha256(json.dumps([variant if on else base, self.round, prompt, transcript, max_tokens, temperature,

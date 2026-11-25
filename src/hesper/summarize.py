@@ -128,11 +128,15 @@ TEMPERATURE = 0.2  # notes are extraction, not creative writing: low = faithful 
 EXTRACT_TEMPERATURE = TEMPERATURE  # the action-item passes (benchmarks compare 0 = no randomness)
 
 
+SEPARATOR = "\n\n---\n\n"  # between the transcript and a pass's instructions
+
+
 class LLM:
     def __init__(self, cfg: Config):
         self.cfg = cfg
         self._model = self._tokenizer = None
         self._read = None  # (the transcript as given, its tokens, the model's state after reading them)
+        self._start = None  # (the first tokens of a meeting's first part, the model's state after them)
         self._judge = None  # (the judge's instructions as tokens, the model's state after reading them)
 
     def count_tokens(self, text: str) -> int:
@@ -155,11 +159,13 @@ class LLM:
         bos = self._tokenizer.bos_token
         return self._tokenizer.encode(text, add_special_tokens=bos is None or not text.startswith(bos))
 
-    def _after_reading(self, head: str, text: str, last: bool):
+    def _after_reading(self, head: str, text: str, last: bool, keep_start: bool = False):
         """The tokens of `text` and, when it starts with the same transcript as the last call, the
         model's state after reading it: the transcript is read once, then each pass only reads its
         own instructions (most of a pass's time was re-reading the transcript). Each pass gets a
-        copy, except the `last` one, which takes it: two copies of a long meeting don't fit in 8 GB."""
+        copy, except the `last` one, which takes it: two copies of a long meeting don't fit in 8 GB.
+        `keep_start`: this is the meeting's first part, which starts like the whole transcript the
+        notes pass reads at the end; that pass starts from this reading instead of the beginning."""
         import copy
 
         import mlx.core as mx
@@ -174,11 +180,19 @@ class LLM:
             self._read = None
             if tokens[:len(prefix)] != prefix:  # the cut falls inside a token: read it all each time
                 return tokens, 0, None
-            state = make_prompt_cache(self._model)
-            for i in range(0, len(prefix), 512):  # small steps: much faster than 2048 with 8 GB
+            start, state = 0, None
+            if self._start and prefix[:len(self._start[0])] == self._start[0]:
+                (_, state), start, self._start = self._start, len(self._start[0]), None
+            # Kept at a step boundary inside the part's own text (its last token may join the next
+            # line's in the whole transcript): the notes pass then reads in the same steps as before.
+            keep = (len(self._encode(text[:end - len(SEPARATOR)])) - 1) // 512 * 512 if keep_start else 0
+            state = state or make_prompt_cache(self._model)
+            for i in range(start, len(prefix), 512):  # small steps: much faster than 2048 with 8 GB
                 self._model(mx.array(prefix[i:i + 512])[None], cache=state)
                 mx.eval([c.state for c in state])
                 mx.clear_cache()  # as mlx-lm does: the step's buffers would otherwise stay held
+                if keep and i + 512 == keep:
+                    self._start = (prefix[:keep], copy.deepcopy(state))
             self._read = (head, prefix, state)
         _, prefix, state = self._read
         if last:
@@ -188,13 +202,14 @@ class LLM:
         return tokens, len(prefix), state if last else copy.deepcopy(state)
 
     def chat(self, prompt: str, max_tokens: int = 2500, on_token=None, prose: bool = False,
-             temperature: float | None = None, transcript: str | None = None, last: bool = False) -> str:
+             temperature: float | None = None, transcript: str | None = None, last: bool = False,
+             keep_start: bool = False) -> str:
         """`prose`: free text (the notes), where a mild repetition penalty stops the loops small
         models sometimes fall into (one line repeated until the length limit). Not for the JSON
         extraction, whose keys repeat on every line by design. `transcript` comes first, before
         the instructions, so passes over the same transcript share its reading; `last`: no pass
-        after this one reads that transcript."""
-        head = f"Transcript:\n{transcript}\n\n---\n\n" if transcript is not None else ""
+        after this one reads that transcript; `keep_start`: see _after_reading."""
+        head = f"Transcript:\n{transcript}{SEPARATOR}" if transcript is not None else ""
         messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": head + prompt}]
         if self.cfg.llm_backend == "mlx":
             from mlx_lm import stream_generate
@@ -210,7 +225,7 @@ class LLM:
                 import mlx.core as mx
 
                 penalty = make_logits_processors(repetition_penalty=1.08, repetition_context_size=256) if prose else None
-                ids, done, state = self._after_reading(head, text, last) if head else (self._encode(text), 0, None)
+                ids, done, state = self._after_reading(head, text, last, keep_start) if head else (self._encode(text), 0, None)
                 tokens = stream_generate(self._model, self._tokenizer, mx.array(ids[done:]), max_tokens=max_tokens,
                                          sampler=make_sampler(temp=TEMPERATURE if temperature is None else temperature, top_p=0.8),
                                          logits_processors=penalty, prompt_cache=state)
@@ -866,7 +881,8 @@ def _summarize(transcript: str, cfg: Config, language: str, context: str, templa
     expected = {"brief": 300, "standard": 700, "detailed": 1100}.get(cfg.summary_style, 700)  # measured
     if llm.count_tokens(transcript) <= cfg.max_context_tokens:
         parts = _parts(llm, transcript, EXTRACT_TOKENS)
-        raw, raw_decisions = _extract(llm, lang, parts, lambda i, n: progress.update(0.05 + 0.4 * (i + min(n / 400, 0.97)) / len(parts)))
+        raw, raw_decisions = _extract(llm, lang, parts, lambda i, n: progress.update(0.05 + 0.4 * (i + min(n / 400, 0.97)) / len(parts)),
+                                      keep_start=True)
         checked = check_actions(raw, transcript, meeting)
         progress.update(0.45)
         actions = merge_actions(checked + second_look(llm, lang, transcript, checked, meeting))
@@ -1064,15 +1080,16 @@ def decisions_second_look(llm, lang: str, transcript: str, checked: list[dict]) 
     return check_decisions(raw, transcript) if raw else []
 
 
-def _extract(llm, lang: str, parts: list[str], on_token=None) -> tuple[str, str]:
+def _extract(llm, lang: str, parts: list[str], on_token=None, keep_start: bool = False) -> tuple[str, str]:
     """The to-dos and the decisions of each part, one part after the other: both passes over a
     part share its reading (see LLM.chat). The notes pass reads it again only when it is the
-    whole transcript."""
+    whole transcript; `keep_start`: the notes pass will read the whole transcript, and starts from
+    the first part's reading."""
     raw = raw_decisions = ""
     decisions = DECISIONS_MODE != "notes"
     for i, part in enumerate(parts):
         raw += llm.chat(ACTIONS_PROMPT.format(language=lang), transcript=part, last=len(parts) > 1 and not decisions,
-                        max_tokens=900, temperature=EXTRACT_TEMPERATURE,
+                        max_tokens=900, temperature=EXTRACT_TEMPERATURE, keep_start=keep_start and i == 0 and len(parts) > 1,
                         on_token=(lambda n, i=i: on_token(i, n)) if on_token else None)
         if decisions:
             raw_decisions += llm.chat(DECISIONS_PROMPT.format(language=lang), transcript=part, last=len(parts) > 1,
