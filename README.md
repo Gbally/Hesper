@@ -288,5 +288,5 @@ Pull requests welcome — please keep `python3 scripts/i18n.py extract` clean.
 
 ## License
 
-[MIT](LICENSE) © 2026 Gbally. Hesper builds on Whisper, Qwen, pyannote, NVIDIA TitaNet, MLX,
-sherpa-onnx and more — see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+[MIT](LICENSE) © 2026 Gbally. Hesper builds on Whisper, Qwen, pyannote, NVIDIA TitaNet, MLX and
+mlx-lm, faster-whisper, llama.cpp, sherpa-onnx and more — see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
