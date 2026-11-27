@@ -67,7 +67,9 @@
   "Open in a window (close it to go back to the notification area)": "Ouvrir dans une fenêtre (fermez-la pour revenir à la zone de notification)",
   "Use them from a desktop shortcut, a Stream Deck, AutoHotkey or a terminal (start hesper://record). A recording started by a link is always announced.": "Utilisez-les depuis un raccourci sur le bureau, un Stream Deck, AutoHotkey ou un terminal (start hesper://record). Un enregistrement lancé par un lien est toujours annoncé.",
   "Started by a hesper:// link (a shortcut, a Stream Deck…).": "Lancé par un lien hesper:// (un raccourci, un Stream Deck…).",
-  "For a calendar Hesper can't read from Outlook: Google Calendar (Settings → your calendar → “Secret address in iCal format”), the new Outlook (Settings → Calendar → Shared calendars → Publish), iCloud… Only this link is read, every 15 minutes.": "Pour un agenda que Hesper ne peut pas lire dans Outlook : Google Agenda (Paramètres → votre agenda → « Adresse secrète au format iCal »), le nouvel Outlook (Paramètres → Calendrier → Calendriers partagés → Publier), iCloud… Seul ce lien est lu, toutes les 15 minutes."
+  "For a calendar Hesper can't read from Outlook: Google Calendar (Settings → your calendar → “Secret address in iCal format”), the new Outlook (Settings → Calendar → Shared calendars → Publish), iCloud… Only this link is read, every 15 minutes.": "Pour un agenda que Hesper ne peut pas lire dans Outlook : Google Agenda (Paramètres → votre agenda → « Adresse secrète au format iCal »), le nouvel Outlook (Paramètres → Calendrier → Calendriers partagés → Publier), iCloud… Seul ce lien est lu, toutes les 15 minutes.",
+  "The engine, the AI models and your settings use %@. Uninstalling Hesper from Windows (Settings → Apps → Installed apps) deletes them too; your notes are kept.": "Le moteur, les modèles d'IA et vos réglages occupent %@. Désinstaller Hesper de Windows (Paramètres → Applications → Applications installées) les supprime aussi ; vos notes sont conservées.",
+  "The Microsoft Store keeps Hesper up to date.": "Le Microsoft Store tient Hesper à jour."
  },
  "es": {
   "Meeting notes that never leave your PC.": "Notas de reunión que nunca salen de tu PC.",
@@ -137,7 +139,9 @@
   "Open in a window (close it to go back to the notification area)": "Abrir en una ventana (ciérrala para volver al área de notificación)",
   "Use them from a desktop shortcut, a Stream Deck, AutoHotkey or a terminal (start hesper://record). A recording started by a link is always announced.": "Úsalos desde un acceso directo en el escritorio, un Stream Deck, AutoHotkey o una terminal (start hesper://record). Una grabación iniciada por un enlace siempre se anuncia.",
   "Started by a hesper:// link (a shortcut, a Stream Deck…).": "Iniciada por un enlace hesper:// (un acceso directo, un Stream Deck…).",
-  "For a calendar Hesper can't read from Outlook: Google Calendar (Settings → your calendar → “Secret address in iCal format”), the new Outlook (Settings → Calendar → Shared calendars → Publish), iCloud… Only this link is read, every 15 minutes.": "Para un calendario que Hesper no puede leer en Outlook: Google Calendar (Configuración → tu calendario → «Dirección secreta en formato iCal»), el nuevo Outlook (Configuración → Calendario → Calendarios compartidos → Publicar), iCloud… Solo se lee este enlace, cada 15 minutos."
+  "For a calendar Hesper can't read from Outlook: Google Calendar (Settings → your calendar → “Secret address in iCal format”), the new Outlook (Settings → Calendar → Shared calendars → Publish), iCloud… Only this link is read, every 15 minutes.": "Para un calendario que Hesper no puede leer en Outlook: Google Calendar (Configuración → tu calendario → «Dirección secreta en formato iCal»), el nuevo Outlook (Configuración → Calendario → Calendarios compartidos → Publicar), iCloud… Solo se lee este enlace, cada 15 minutos.",
+  "The engine, the AI models and your settings use %@. Uninstalling Hesper from Windows (Settings → Apps → Installed apps) deletes them too; your notes are kept.": "El motor, los modelos de IA y tus ajustes ocupan %@. Al desinstalar Hesper de Windows (Configuración → Aplicaciones → Aplicaciones instaladas) también se eliminan; tus notas se conservan.",
+  "The Microsoft Store keeps Hesper up to date.": "Microsoft Store mantiene Hesper actualizado."
  },
  "pt": {
   "Meeting notes that never leave your PC.": "Notas de reunião que nunca saem do seu PC.",
@@ -207,7 +211,9 @@
   "Open in a window (close it to go back to the notification area)": "Abrir numa janela (feche-a para voltar à área de notificação)",
   "Use them from a desktop shortcut, a Stream Deck, AutoHotkey or a terminal (start hesper://record). A recording started by a link is always announced.": "Use-os a partir de um atalho no ambiente de trabalho, um Stream Deck, AutoHotkey ou um terminal (start hesper://record). Uma gravação iniciada por uma ligação é sempre anunciada.",
   "Started by a hesper:// link (a shortcut, a Stream Deck…).": "Iniciada por uma ligação hesper:// (um atalho, um Stream Deck…).",
-  "For a calendar Hesper can't read from Outlook: Google Calendar (Settings → your calendar → “Secret address in iCal format”), the new Outlook (Settings → Calendar → Shared calendars → Publish), iCloud… Only this link is read, every 15 minutes.": "Para um calendário que o Hesper não consegue ler no Outlook: Google Calendar (Definições → o seu calendário → «Endereço secreto em formato iCal»), o novo Outlook (Definições → Calendário → Calendários partilhados → Publicar), iCloud… Só esta ligação é lida, a cada 15 minutos."
+  "For a calendar Hesper can't read from Outlook: Google Calendar (Settings → your calendar → “Secret address in iCal format”), the new Outlook (Settings → Calendar → Shared calendars → Publish), iCloud… Only this link is read, every 15 minutes.": "Para um calendário que o Hesper não consegue ler no Outlook: Google Calendar (Definições → o seu calendário → «Endereço secreto em formato iCal»), o novo Outlook (Definições → Calendário → Calendários partilhados → Publicar), iCloud… Só esta ligação é lida, a cada 15 minutos.",
+  "The engine, the AI models and your settings use %@. Uninstalling Hesper from Windows (Settings → Apps → Installed apps) deletes them too; your notes are kept.": "O motor, os modelos de IA e seus ajustes ocupam %@. Desinstalar o Hesper do Windows (Configurações → Aplicativos → Aplicativos instalados) também os remove; suas notas são mantidas.",
+  "The Microsoft Store keeps Hesper up to date.": "A Microsoft Store mantém o Hesper atualizado."
  },
  "ja": {
   "Meeting notes that never leave your PC.": "PC の外に出ない会議メモ。",
@@ -277,7 +283,9 @@
   "Open in a window (close it to go back to the notification area)": "ウィンドウで開く（閉じると通知領域に戻ります）",
   "Use them from a desktop shortcut, a Stream Deck, AutoHotkey or a terminal (start hesper://record). A recording started by a link is always announced.": "デスクトップのショートカット、Stream Deck、AutoHotkey、ターミナル（start hesper://record）から使えます。リンクで開始した録音は必ず通知されます。",
   "Started by a hesper:// link (a shortcut, a Stream Deck…).": "hesper:// リンク（ショートカット、Stream Deck など）で開始されました。",
-  "For a calendar Hesper can't read from Outlook: Google Calendar (Settings → your calendar → “Secret address in iCal format”), the new Outlook (Settings → Calendar → Shared calendars → Publish), iCloud… Only this link is read, every 15 minutes.": "Hesper が Outlook から読めないカレンダー用：Google カレンダー（設定 → カレンダー →「iCal 形式の非公開 URL」）、新しい Outlook（設定 → 予定表 → 共有予定表 → 公開）、iCloud など。このリンクだけを 15 分ごとに読み込みます。"
+  "For a calendar Hesper can't read from Outlook: Google Calendar (Settings → your calendar → “Secret address in iCal format”), the new Outlook (Settings → Calendar → Shared calendars → Publish), iCloud… Only this link is read, every 15 minutes.": "Hesper が Outlook から読めないカレンダー用：Google カレンダー（設定 → カレンダー →「iCal 形式の非公開 URL」）、新しい Outlook（設定 → 予定表 → 共有予定表 → 公開）、iCloud など。このリンクだけを 15 分ごとに読み込みます。",
+  "The engine, the AI models and your settings use %@. Uninstalling Hesper from Windows (Settings → Apps → Installed apps) deletes them too; your notes are kept.": "エンジン、AI モデル、設定で %@ を使用しています。Windows から Hesper をアンインストールすると (設定 → アプリ → インストールされているアプリ)、これらも削除されます。メモは残ります。",
+  "The Microsoft Store keeps Hesper up to date.": "Hesper は Microsoft Store によって最新の状態に保たれます。"
  },
  "zh-Hans": {
   "Meeting notes that never leave your PC.": "会议笔记永不离开你的电脑。",
@@ -347,6 +355,8 @@
   "Open in a window (close it to go back to the notification area)": "在窗口中打开（关闭后回到通知区域）",
   "Use them from a desktop shortcut, a Stream Deck, AutoHotkey or a terminal (start hesper://record). A recording started by a link is always announced.": "可从桌面快捷方式、Stream Deck、AutoHotkey 或终端（start hesper://record）使用。通过链接开始的录音总会发出通知。",
   "Started by a hesper:// link (a shortcut, a Stream Deck…).": "由 hesper:// 链接（快捷方式、Stream Deck 等）开始。",
-  "For a calendar Hesper can't read from Outlook: Google Calendar (Settings → your calendar → “Secret address in iCal format”), the new Outlook (Settings → Calendar → Shared calendars → Publish), iCloud… Only this link is read, every 15 minutes.": "用于 Hesper 无法从 Outlook 读取的日历：Google 日历（设置 → 你的日历 →“iCal 格式的私密地址”）、新版 Outlook（设置 → 日历 → 共享日历 → 发布）、iCloud…… 只读取此链接，每 15 分钟一次。"
+  "For a calendar Hesper can't read from Outlook: Google Calendar (Settings → your calendar → “Secret address in iCal format”), the new Outlook (Settings → Calendar → Shared calendars → Publish), iCloud… Only this link is read, every 15 minutes.": "用于 Hesper 无法从 Outlook 读取的日历：Google 日历（设置 → 你的日历 →“iCal 格式的私密地址”）、新版 Outlook（设置 → 日历 → 共享日历 → 发布）、iCloud…… 只读取此链接，每 15 分钟一次。",
+  "The engine, the AI models and your settings use %@. Uninstalling Hesper from Windows (Settings → Apps → Installed apps) deletes them too; your notes are kept.": "引擎、AI 模型和你的设置占用 %@。从 Windows 卸载 Hesper（设置 → 应用 → 安装的应用）时也会删除它们；你的笔记会保留。",
+  "The Microsoft Store keeps Hesper up to date.": "Microsoft Store 会让 Hesper 保持最新。"
  }
 }

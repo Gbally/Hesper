@@ -13,7 +13,7 @@ sealed class AppModel
 {
     public AppSettings Settings { get; private set; } = AppSettings.Load();
     public Recorder? Recorder { get; private set; }
-    public bool Ready => Setup.IsInstalled;
+    public bool Ready => Setup.IsInstalled || Paths.Demo;
 
     /// Something the pages show changed (the meetings, a job's progress, the recording…).
     public event Action? Changed;
@@ -153,6 +153,7 @@ sealed class AppModel
         ["calendar"] = CalendarState(),
         ["appLoopback"] = ProcessLoopbackCapture.Supported,
         ["platform"] = Platform.Name,
+        ["store"] = Platform.Store,  // the Microsoft Store's: no updates or removal of its own
         ["desktop"] = Platform.Desktop(),
     };
 

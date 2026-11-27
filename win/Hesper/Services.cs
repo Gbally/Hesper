@@ -8,21 +8,42 @@ using Microsoft.Win32;
 
 namespace Hesper;
 
-/// "Open Hesper at login": a value in the user's Run key (no admin rights).
+/// "Open Hesper at login": a value in the user's Run key (no admin rights). The Microsoft Store
+/// version: its package's startup task (Windows lists it in Settings → Apps → Startup, where the user
+/// may turn it off; then only they can turn it back on).
 static class Startup
 {
     const string Key = @"Software\Microsoft\Windows\CurrentVersion\Run";
+    const string TaskId = "HesperAtLogin";  // win/Store/AppxManifest.xml
+    static bool? storeTask;  // its state, read once
 
     public static bool Enabled
     {
-        get => Registry.CurrentUser.OpenSubKey(Key)?.GetValue("Hesper") is string;
+        get => Platform.Store ? storeTask ??= Task() is { } t && On(t.State)
+                              : Registry.CurrentUser.OpenSubKey(Key)?.GetValue("Hesper") is string;
         set
         {
+            if (Platform.Store)
+            {
+                if (Task() is not { } t) return;
+                if (value) storeTask = On(t.RequestEnableAsync().AsTask().GetAwaiter().GetResult());  // a desktop app: no question asked
+                else { t.Disable(); storeTask = false; }
+                return;
+            }
             using var k = Registry.CurrentUser.CreateSubKey(Key);
             if (value) k.SetValue("Hesper", $"\"{Environment.ProcessPath}\"");
             else k.DeleteValue("Hesper", false);
         }
     }
+
+    static global::Windows.ApplicationModel.StartupTask? Task()
+    {
+        try { return global::Windows.ApplicationModel.StartupTask.GetAsync(TaskId).AsTask().GetAwaiter().GetResult(); }
+        catch (Exception e) { Paths.WriteLog("startup task: " + e.Message); return null; }
+    }
+
+    static bool On(global::Windows.ApplicationModel.StartupTaskState s) =>
+        s is global::Windows.ApplicationModel.StartupTaskState.Enabled or global::Windows.ApplicationModel.StartupTaskState.EnabledByPolicy;
 }
 
 /// Windows: classic Outlook's exe, for e-mail drafts (Share.Email).
@@ -97,6 +118,7 @@ static partial class Uninstall
 {
     public static void Run(string notesFolder, bool removeNotes)
     {
+        if (Platform.Store) return;  // Windows removes it, with its folder (the pages say so)
         Startup.Enabled = false;
         Identity.Remove();
         if (removeNotes && Directory.Exists(notesFolder))

@@ -1,0 +1,110 @@
+{
+ "title": "Weekly pipeline review",
+ "date": "2026-11-19T14:30:00",
+ "duration": 168.0,
+ "participants": [
+  "Alex Martin",
+  "Laura",
+  "Mike",
+  "Priya",
+  "Tom"
+ ],
+ "tracks": [
+  "meeting",
+  "mic"
+ ],
+ "template": "general",
+ "summary": [
+  "Sales team closed 4 deals totaling €180k, reaching 78% of the quarterly target.",
+  "Helios Energy deal requires legal review on liability caps before signing.",
+  "Orbis deal risked cancellation due to CFO departure; moved to Q2 forecast.",
+  "Demo environment crashes identified; new server approved and ordered.",
+  "New policy established requiring Laura Chen's approval for discounts over 15%.",
+  "Sales kick-off event remains unbooked; venue quotes requested by end of month.",
+  "Hiring of second account executive pending Helios outcome; scheduled for next Friday."
+ ],
+ "decisions": [
+  "Helios deal clause sent to legal",
+  "Orbis deal moved to next quarter",
+  "Approve order for new demo server.",
+  "Establish rule: discounts above 15% require Laura Chen's approval.",
+  "Postpone decision on second account executive hiring to next Friday.",
+  "Move Orbis deal from current forecast to Q2."
+ ],
+ "actions": [
+  {
+   "owner": "Mike",
+   "task": "send the liability clause to legal",
+   "due": "today",
+   "at": "00:00:53",
+   "due_date": "2026-11-19"
+  },
+  {
+   "owner": "Tom Fischer",
+   "task": "order the new server",
+   "due": "this week",
+   "at": "00:01:43",
+   "due_date": "2026-11-20"
+  },
+  {
+   "owner": "Tom",
+   "task": "have the new server running",
+   "due": "Thursday",
+   "at": "00:01:50",
+   "due_date": "2026-11-26"
+  },
+  {
+   "owner": "Laura",
+   "task": "send the discount rule to the whole team",
+   "due": "this afternoon",
+   "at": "00:02:05",
+   "due_date": "2026-11-19"
+  },
+  {
+   "owner": "Priya Nair",
+   "task": "get two quotes for venues in Lisbon",
+   "due": "end of the month",
+   "at": "00:02:36",
+   "due_date": "2026-11-30"
+  },
+  {
+   "owner": "Priya",
+   "task": "get two quotes for venues in Lisbon",
+   "due": "end of the month",
+   "at": "00:02:44",
+   "due_date": "2026-11-30"
+  }
+ ],
+ "questions": [
+  "Status update on sales kick-off event booking."
+ ],
+ "sections": [
+  {
+   "title": "Risks",
+   "items": [
+    "Helios Energy deal delayed until legal review completes liability cap clause.",
+    "Orbis deal at risk due to CFO departure and frozen purchases.",
+    "Demo environment instability causing client embarrassment."
+   ]
+  },
+  {
+   "title": "Key figures and dates",
+   "items": [
+    "€180,000 — value of deals closed this week",
+    "940,000 — current quarter total",
+    "78% — quarter completion rate",
+    "1.2 million — quarterly target",
+    "12 — number of open deals in pipeline",
+    "600,000 — total value of open deals",
+    "200,000 — value of Helios Energy deal",
+    "90,000 — value of Orbis deal",
+    "300 euros — monthly cost for demo server upgrade",
+    "15 % — discount threshold requiring manager approval",
+    "Thursday — deadline for new server installation",
+    "End of month — deadline for venue quotes (Lisbon)",
+    "Next Friday — follow-up date regarding second account executive hiring"
+   ]
+  }
+ ],
+ "version": 2
+}

@@ -36,6 +36,28 @@ the build number one more than the feeds'; it is the exe's 4th version number, w
 compares. The site's Windows button turns on with `latest-windows.json`. The exe isn't code-signed
 yet: SmartScreen warns on the first download.
 
+**Microsoft Store** (an MSIX package; the Store signs it, so no SmartScreen warning): the same app,
+which notices it was installed from the Store (`Platform.Store`, it has a package identity) and then
+has no updater, no "Remove Hesper" (Windows uninstalls it), and no Run key, Start menu shortcut,
+app ID or `hesper://` registration of its own: `win/Store/AppxManifest.xml` declares them (the login
+item is its startup task, `Startup` in `Services.cs`). Its data folder is the package's own
+(`%LOCALAPPDATA%\Packages\<its name>\LocalCache`, deleted with the app), so it never shares an
+engine or settings with the downloaded exe.
+
+```powershell
+.\scripts\store_windows.ps1 -Test     # build-cache\store-test: a "Hesper (test)" package to try on this PC
+.\scripts\store_windows.ps1           # build-cache\store\Hesper-X.msix, to upload in Partner Center
+.\scripts\store_screenshots.ps1       # build-cache\store-shots\en: the listing's pictures (-Lang fr…)
+```
+
+The package needs `win\Store\identity.json` filled in from Partner Center (Hesper → Product
+management → Product identity) and committed code. Package version X.Y.Z.0 (the Store keeps the
+4th number): each upload needs a higher version. The pictures are the app's own windows
+(`--capture DIR SHOTS.json`) with the invented meetings of `win/Store/demo`, in a test data folder
+(`HESPER_HOME` + `HESPER_DEMO=1`: counts as set up, reads nothing of the PC's Hesper).
+`win/Store/LISTING.md` has every field Partner Center asks for, in the six languages. The exe
+(`release_windows.ps1`) is unchanged by all this.
+
 Diagnostics: `Hesper.exe --calendar` (what Hesper reads from Outlook), `--devices`, `--capture DIR`
 (PNGs of every screen, light and dark), `--record SECONDS [FOLDER] [MIC] [process:NAME]`, `--notify`
 (a test notification, and whether Windows lists Hesper in Settings → Notifications).

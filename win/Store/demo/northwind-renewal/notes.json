@@ -1,0 +1,193 @@
+{
+ "title": "Q4 renewal with Northwind",
+ "date": "2026-11-23T09:30:00",
+ "duration": 222.92974999999998,
+ "participants": [
+  "Lisa",
+  "David",
+  "Emma",
+  "Alex Martin"
+ ],
+ "tracks": [
+  "meeting",
+  "mic"
+ ],
+ "template": "client",
+ "guessed_names": [
+  "David",
+  "Emma",
+  "Lisa"
+ ],
+ "summary": [
+  "Go-live date confirmed as December 1st without Single Sign-On (SSO), with SSO planned for January.",
+  "Budget cap of €80k secured by deferring SSO costs to next year; revised quote requested by Wednesday.",
+  "Backup servers must be moved from US to EU (Frankfurt) to satisfy legal requirements; confirmation needed by next Friday.",
+  "Pilot program approved for 40 finance users over two weeks before full rollout to 600 employees.",
+  "Legal approval for Data Processing Agreement required by November 6th.",
+  "Technical workshop scheduled for next week; user list for pilot to be sent Monday."
+ ],
+ "decisions": [
+  "Go-live on December 1st without Single Sign-On; SSO added in second phase starting January.",
+  "Proceed with normal logins using strong passwords and two-factor authentication.",
+  "Single sign-on moves to January, shifting part of the cost to next year's budget",
+  "All data must stay in the European Union",
+  "Alex Martin to confirm if backups can be moved to Europe by next Friday",
+  "Execute a pilot with 40 finance users for two weeks before full deployment.",
+  "Legal approval for data processing agreement needed by November 6th",
+  "Move backup provider from US to Europe (Frankfurt) to satisfy legal requirements."
+ ],
+ "actions": [
+  {
+   "owner": "Lisa",
+   "task": "send revised quote and statement of work with two phases",
+   "due": "Wednesday",
+   "at": "00:01:55",
+   "due_date": "2026-11-25"
+  },
+  {
+   "owner": "Alex Martin",
+   "task": "confirm if backups can be moved to Europe",
+   "due": "Friday",
+   "at": "00:02:33",
+   "due_date": "2026-11-27"
+  },
+  {
+   "owner": "Emma",
+   "task": "send list of 40 pilot users",
+   "due": "Monday",
+   "at": "00:03:11",
+   "due_date": "2026-11-30"
+  },
+  {
+   "owner": "Alex Martin",
+   "task": "organize technical workshop and send time slots",
+   "due": "next week",
+   "at": "00:03:15",
+   "due_date": "2026-11-30"
+  },
+  {
+   "owner": "David",
+   "task": "get legal approval for data processing agreement",
+   "due": "4 December",
+   "at": "00:03:27",
+   "due_date": "2026-12-04"
+  },
+  {
+   "owner": "Alex Martin",
+   "task": "ask Finance for a phased invoice",
+   "due": "Friday",
+   "typed": true,
+   "due_date": "2026-11-27"
+  },
+  {
+   "owner": "Alex Martin",
+   "task": "prepare the workshop agenda",
+   "due": "Friday",
+   "typed": true,
+   "due_date": "2026-11-27"
+  }
+ ],
+ "questions": [
+  "Confirmation that the backup provider can be moved to the EU by next Friday."
+ ],
+ "sections": [
+  {
+   "title": "Client requests",
+   "items": [
+    "Single sign-on with Microsoft accounts.",
+    "Export of reports to Excel.",
+    "Go-live on December 1st.",
+    "All data backups stored within the European Union.",
+    "Pilot run with 40 finance users for two weeks."
+   ]
+  },
+  {
+   "title": "Our commitments",
+   "items": [
+    "Send revised quote and Statement of Work with two-phase plan by Wednesday.",
+    "Confirm ability to move backup provider from US to Europe by next Friday.",
+    "Organize a technical workshop next week."
+   ]
+  },
+  {
+   "title": "Risks & concerns",
+   "items": [
+    "Missing the December 1st deadline if SSO is included in the first phase.",
+    "Legal team blocking the project if backups remain in the US.",
+    "Need for formal written agreement regarding the phased implementation."
+   ]
+  },
+  {
+   "title": "Key figures and dates",
+   "items": [
+    "€80,000 — budget cap for this year.",
+    "$85,000 — original quote (exceeds cap).",
+    "6–8 weeks — estimated time for SSO integration.",
+    "December 1st — target go-live date without SSO.",
+    "January — planned go-live date with SSO.",
+    "November 6th — deadline for legal approval of Data Processing Agreement.",
+    "Next Friday — deadline for confirming EU backup location.",
+    "Monday — deadline for sending pilot user list.",
+    "Next week — scheduled technical workshop.",
+    "40 users — size of the finance team pilot group.",
+    "600 employees — total headcount for full rollout."
+   ]
+  }
+ ],
+ "my_notes": "Budget cap 80k is the real constraint\nThey want EU-only backups, check with our infra\n[ ] ask Finance for a phased invoice\ntodo: prepare the workshop agenda",
+ "highlights": [
+  {
+   "at": "00:02:11",
+   "seconds": 131.5,
+   "lines": [
+    {
+     "speaker": "David",
+     "text": "Then I agree. Phase 1 on December 1st without single sign-on, and single sign-on in January. I need it in writing.",
+     "at": "00:01:45"
+    },
+    {
+     "speaker": "Lisa",
+     "text": "Of course. I'll send you a revised quote and the statement of work with the two phases by Wednesday.",
+     "at": "00:01:55"
+    },
+    {
+     "speaker": "David",
+     "text": "Good. About the budget, we have a hard cap of 80,000 euros for this year. The first quote was 85.",
+     "at": "00:02:03"
+    },
+    {
+     "speaker": "Lisa",
+     "text": "I understand. If single sign-on moves to January, part of the cost moves to next year's budget. I'm confident we can stay under 80,000 for this year.",
+     "at": "00:02:11"
+    }
+   ]
+  },
+  {
+   "at": "00:02:52",
+   "seconds": 172.0,
+   "lines": [
+    {
+     "speaker": "Emma",
+     "text": "I have one concern. Our legal team requires that all data stays in the European Union. Where are your servers?",
+     "at": "00:02:24"
+    },
+    {
+     "speaker": "Alex Martin",
+     "text": "Our main servers are in Frankfurt, so it's fine. But our backup provider is in the US. I need to check if we can move the backups to Europe. I'll confirm that by next Friday.",
+     "at": "00:02:33"
+    },
+    {
+     "speaker": "Emma",
+     "text": "Thank you, that's important. If backups stay in the US, legal will block the project.",
+     "at": "00:02:48"
+    },
+    {
+     "speaker": "David",
+     "text": "Also, we want a pilot first. 40 users in the finance team, for two weeks, before the full rollout to the 600 employees.",
+     "at": "00:02:55"
+    }
+   ]
+  }
+ ],
+ "version": 2
+}

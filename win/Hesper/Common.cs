@@ -209,6 +209,7 @@ static partial class Updater
 
     public static async Task<JsonObject?> Check(bool testVersions)
     {
+        if (Platform.Store || Paths.Demo) return null;  // the Microsoft Store updates it; no badge in the Store's pictures
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
         async Task<JsonObject?> Get(string f)
         {

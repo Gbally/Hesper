@@ -1,0 +1,203 @@
+{
+ "title": "",
+ "languages": [
+  "en"
+ ],
+ "tracks": [
+  "meeting",
+  "mic"
+ ],
+ "guessed_names": [
+  "David",
+  "Emma",
+  "Lisa"
+ ],
+ "duration": 222.92974999999998,
+ "created": "2026-11-23T09:30:00",
+ "utterances": [
+  {
+   "start": 9.78,
+   "end": 17.259999999999998,
+   "speaker": "Lisa",
+   "text": "Hi David, hi Emma, thanks for making the time. Alex Martin from our product team is with me today.",
+   "lang": "en",
+   "track": "meeting"
+  },
+  {
+   "start": 19.169999999999998,
+   "end": 26.199999999999996,
+   "speaker": "David",
+   "text": "Thanks Lisa, Emma from our IT department joins us too, she will handle the integration on our side.",
+   "lang": "en",
+   "track": "meeting"
+  },
+  {
+   "start": 27.629937499999997,
+   "end": 28.789937499999997,
+   "speaker": "Emma",
+   "text": "Hello everyone.",
+   "lang": "en",
+   "track": "meeting"
+  },
+  {
+   "start": 30.0099375,
+   "end": 41.429937499999994,
+   "speaker": "Alex Martin",
+   "text": "Hi both. So, the goal today is to go through your requirements for the rollout and decree on the plan. David, do you want to start with what matters most for you?",
+   "lang": "en",
+   "track": "mic"
+  },
+  {
+   "start": 43.359875,
+   "end": 61.139875,
+   "speaker": "David",
+   "text": "Sure, three things. First, single sign on with our Microsoft accounts, that's a must for our security team. Second, an export of the reports to Excel. And third, we need to go live on December 1st, because our new financial year starts then.",
+   "lang": "en",
+   "track": "meeting"
+  },
+  {
+   "start": 62.01987500000001,
+   "end": 74.499875,
+   "speaker": "Alex Martin",
+   "text": "Okay. The Excel export is easy, we already have it in beta. Single sign-on is more work. With your Azure setup I estimate 6 to 8 weeks. 6",
+   "lang": "en",
+   "track": "mic"
+  },
+  {
+   "start": 74.04,
+   "end": 77.689875,
+   "speaker": "David",
+   "text": "Six to eight weeks, then we would miss December 1st.",
+   "lang": "en",
+   "track": "meeting"
+  },
+  {
+   "start": 79.59,
+   "end": 91.249875,
+   "speaker": "Alex Martin",
+   "text": "Yes. What I'd suggest is to go live on December 1st without single sign-on, with normal logins, and add single sign-on in the second phase in January.",
+   "lang": "en",
+   "track": "mic"
+  },
+  {
+   "start": 93.78,
+   "end": 100.099875,
+   "speaker": "Emma",
+   "text": "From the IT side that could work, if the normal logins use strong passwords and two-factor authentication.",
+   "lang": "en",
+   "track": "meeting"
+  },
+  {
+   "start": 100.98,
+   "end": 104.239875,
+   "speaker": "Alex Martin",
+   "text": "They do. Two factors are by default.",
+   "lang": "en",
+   "track": "mic"
+  },
+  {
+   "start": 105.63000000000001,
+   "end": 114.15993750000001,
+   "speaker": "David",
+   "text": "Then I agree. Phase 1 on December 1st without single sign-on, and single sign-on in January. I need it in writing.",
+   "lang": "en",
+   "track": "meeting"
+  },
+  {
+   "start": 115.77,
+   "end": 122.3999375,
+   "speaker": "Lisa",
+   "text": "Of course. I'll send you a revised quote and the statement of work with the two phases by Wednesday.",
+   "lang": "en",
+   "track": "meeting"
+  },
+  {
+   "start": 123.53993749999998,
+   "end": 130.97993749999998,
+   "speaker": "David",
+   "text": "Good. About the budget, we have a hard cap of 80,000 euros for this year. The first quote was 85.",
+   "lang": "en",
+   "track": "meeting"
+  },
+  {
+   "start": 131.59993749999998,
+   "end": 143.9999375,
+   "speaker": "Lisa",
+   "text": "I understand. If single sign-on moves to January, part of the cost moves to next year's budget. I'm confident we can stay under 80,000 for this year.",
+   "lang": "en",
+   "track": "meeting"
+  },
+  {
+   "start": 144.7599375,
+   "end": 151.7799375,
+   "speaker": "Emma",
+   "text": "I have one concern. Our legal team requires that all data stays in the European Union. Where are your servers?",
+   "lang": "en",
+   "track": "meeting"
+  },
+  {
+   "start": 153.0,
+   "end": 166.409875,
+   "speaker": "Alex Martin",
+   "text": "Our main servers are in Frankfurt, so it's fine. But our backup provider is in the US. I need to check if we can move the backups to Europe. I'll confirm that by next Friday.",
+   "lang": "en",
+   "track": "mic"
+  },
+  {
+   "start": 168.11999999999998,
+   "end": 173.93993749999998,
+   "speaker": "Emma",
+   "text": "Thank you, that's important. If backups stay in the US, legal will block the project.",
+   "lang": "en",
+   "track": "meeting"
+  },
+  {
+   "start": 175.0599375,
+   "end": 184.11993749999996,
+   "speaker": "David",
+   "text": "Also, we want a pilot first. 40 users in the finance team, for two weeks, before the full rollout to the 600 employees.",
+   "lang": "en",
+   "track": "meeting"
+  },
+  {
+   "start": 185.109875,
+   "end": 190.549875,
+   "speaker": "Alex Martin",
+   "text": "That's a good idea. Emma, can you send us the list of the 40 pilot users?",
+   "lang": "en",
+   "track": "mic"
+  },
+  {
+   "start": 191.61987499999998,
+   "end": 193.93987499999997,
+   "speaker": "Emma",
+   "text": "Yes, I'll send the list on Monday.",
+   "lang": "en",
+   "track": "meeting"
+  },
+  {
+   "start": 195.45,
+   "end": 205.8098125,
+   "speaker": "Alex Martin",
+   "text": "And I'd like to organize a technical workshop with your team next week to prepare the integration. I'll send a few time slots to Emma.",
+   "lang": "en",
+   "track": "mic"
+  },
+  {
+   "start": 207.3998125,
+   "end": 215.9598125,
+   "speaker": "David",
+   "text": "Perfect. And on my side, I need the legal approval for the data processing agreement. I'll get that signed by November 6th.",
+   "lang": "en",
+   "track": "meeting"
+  },
+  {
+   "start": 218.13,
+   "end": 222.92974999999998,
+   "speaker": "Lisa",
+   "text": "So we have a plan. Thank you both. We'll be in touch this week.",
+   "lang": "en",
+   "track": "meeting"
+  }
+ ]
+}

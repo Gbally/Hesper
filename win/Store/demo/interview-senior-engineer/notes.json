@@ -1,0 +1,103 @@
+{
+ "title": "Interview: senior engineer",
+ "date": "2026-11-18T11:00:00",
+ "duration": 641.0,
+ "participants": [
+  "Alex Martin",
+  "Oliver",
+  "Aisha"
+ ],
+ "tracks": [
+  "meeting",
+  "mic"
+ ],
+ "template": "interview",
+ "summary": [
+  "Oliver Bennett interviewed for senior engineer role at Parcelo by Alex Martin and Aisha Khan.",
+  "Oliver discussed his 7 years of backend experience, including leading a monolith-to-microservices migration at Brightpay.",
+  "He proposed a design for tracking parcels using Kafka, Postgres, and idempotent processing.",
+  "Oliver admitted he has no production Elixir experience but liked an online course.",
+  "He described a past incident causing a 40-minute checkout outage due to a feature flag misconfiguration.",
+  "The team agreed to send a take-home exercise and request references before a final round with the CTO."
+ ],
+ "decisions": [
+  "Use scan time from device, not arrival time, and only move status forward",
+  "The take-home exercise is approved",
+  "The final choice is made on 20 November",
+  "The notice period is accepted",
+  "The relocation package is approved",
+  "February start date is acceptable if the candidate is the right person.",
+  "Alex Martin is willing to offer up to €100,000.",
+  "The final round call will be booked for the week of November 9th."
+ ],
+ "actions": [
+  {
+   "owner": "Aisha",
+   "task": "send a take-home exercise",
+   "due": "today",
+   "at": "00:08:12",
+   "due_date": "2026-11-18"
+  },
+  {
+   "owner": "Oliver",
+   "task": "send back the exercise",
+   "due": "next Friday",
+   "at": "00:08:34",
+   "due_date": "2026-11-27"
+  },
+  {
+   "owner": "Aisha",
+   "task": "send references",
+   "due": "Monday",
+   "at": "00:08:39",
+   "due_date": "2026-11-23"
+  },
+  {
+   "owner": "Alex Martin",
+   "task": "come back with a decision",
+   "due": "Friday",
+   "at": "00:08:52",
+   "due_date": "2026-11-27"
+  },
+  {
+   "owner": "Aisha",
+   "task": "book call with Martin",
+   "due": "next week",
+   "at": "00:10:13",
+   "due_date": "2026-11-30"
+  },
+  {
+   "owner": "Alex Martin",
+   "task": "check with HR",
+   "due": "Wednesday",
+   "at": "00:10:28",
+   "due_date": "2026-11-25"
+  }
+ ],
+ "questions": [
+  "How much technical debt exists regarding the old tracking system (Aisha noted it is 8 years old).",
+  "Confirmation of parcel history retention policy and associated costs.",
+  "Final confirmation of the relocation package details from HR."
+ ],
+ "sections": [
+  {
+   "title": "Candidate background",
+   "items": [
+    "Seven years as a back-end engineer, starting in PHP at a Manchester agency and moving to Go/Python at Brightpay. Led technical design and mentoring for a monolith split into services."
+   ]
+  },
+  {
+   "title": "Strengths",
+   "items": [
+    "Led a team of five engineers through splitting a monolith into services. Reduced payment API P99 latency from 800ms to 120ms via batching and read replicas. Designed an idempotent event pipeline handling out-of-order events. Demonstrated honesty about lacking production Elixir experience. Mentored two junior developers, one of whom was promoted."
+   ]
+  },
+  {
+   "title": "Concerns",
+   "items": [
+    "No production Elixir experience; may require 2–3 months to become productive. Did not consider data retention or storage costs for parcel history during the design question. Monitoring was used rather than built by the candidate."
+   ]
+  }
+ ],
+ "version": 2
+}

@@ -1,0 +1,120 @@
+{
+ "title": "Team stand-up",
+ "date": "2026-11-20T09:15:00",
+ "duration": 174.0,
+ "participants": [
+  "Alex Martin",
+  "Priya",
+  "Tom",
+  "Ana",
+  "Ken"
+ ],
+ "tracks": [
+  "meeting",
+  "mic"
+ ],
+ "template": "standup",
+ "summary": [
+  "Priya fixed login crash on Android 12; rate remains 2.1%.",
+  "Tom's payment refactor needs three more days and moves to the next sprint.",
+  "Ana deployed offline mode; release notes writing and staging deploy scheduled for Monday.",
+  "Ken blocked by missing production API keys from vendor; Alex will escalate today.",
+  "Feature freeze confirmed for Wednesday; client demo moved to Thursday due to staging schedule.",
+  "Three additional test devices requested before Wednesday; retro scheduled for next Friday at 4 PM."
+ ],
+ "decisions": [
+  "The payment refactor moves to the next sprint",
+  "Payment code will not be rushed",
+  "Feature freeze stays on Wednesday with no exceptions.",
+  "Client demo date changed from Tuesday to Thursday.",
+  "The retro is scheduled for next Friday at 4"
+ ],
+ "actions": [
+  {
+   "owner": "Priya",
+   "task": "fix the login crash on Android 12",
+   "due": "today",
+   "at": "00:00:15",
+   "due_date": "2026-11-20"
+  },
+  {
+   "owner": "Tom",
+   "task": "review pull request 482",
+   "due": "Today",
+   "at": "00:00:44",
+   "due_date": "2026-11-20"
+  },
+  {
+   "owner": "Tom Becker",
+   "task": "continue the payment screen refactor",
+   "due": "",
+   "at": "00:00:44"
+  },
+  {
+   "owner": "Ana",
+   "task": "write the release notes",
+   "due": "",
+   "at": "00:01:17"
+  },
+  {
+   "owner": "Ana",
+   "task": "deploy the build to staging",
+   "due": "Monday morning",
+   "at": "00:01:17",
+   "due_date": "2026-11-23"
+  },
+  {
+   "owner": "Alex Martin",
+   "task": "call the vendor",
+   "due": "today",
+   "at": "00:01:50",
+   "due_date": "2026-11-20"
+  },
+  {
+   "owner": "Ken",
+   "task": "pair with Ana",
+   "due": "",
+   "at": "00:01:58"
+  },
+  {
+   "owner": "Ken",
+   "task": "test the rate limits using the Sandbox Keys",
+   "due": "",
+   "at": "00:01:58"
+  },
+  {
+   "owner": "Alex Martin",
+   "task": "ask for three more test devices",
+   "due": "Wednesday",
+   "at": "00:02:29",
+   "due_date": "2026-11-25"
+  },
+  {
+   "owner": "Alex Martin",
+   "task": "put the retro in the calendar",
+   "due": "next Friday at 4",
+   "at": "00:02:44",
+   "due_date": "2026-11-27"
+  }
+ ],
+ "questions": [],
+ "sections": [
+  {
+   "title": "Updates",
+   "items": [
+    "Priya — done with new onboarding screens; fixing login crash today.",
+    "Tom — reviewing PR 482 before noon; continuing payment refactor after review.",
+    "Ana — finished offline mode; writing release notes; deploying to staging Monday morning.",
+    "Ken — blocked waiting for vendor API keys; pairing with Ana on Rate Limit Test using Sandbox Keys.",
+    "Alex — organizing meeting; escalating vendor issue; requesting test devices."
+   ]
+  },
+  {
+   "title": "Blockers",
+   "items": [
+    "Ken is blocked by the vendor not sending production API keys; Alex will call the vendor today."
+   ]
+  }
+ ],
+ "version": 2
+}

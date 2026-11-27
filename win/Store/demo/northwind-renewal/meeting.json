@@ -1,0 +1,31 @@
+{
+ "title": "Q4 renewal with Northwind",
+ "started": "2026-11-23T09:30:00",
+ "template": "client",
+ "calendar": {
+  "title": "Q4 renewal with Northwind",
+  "organizer": "Alex Martin",
+  "attendees": [
+   {
+    "name": "Lisa Moreau",
+    "email": ""
+   },
+   {
+    "name": "David Chen",
+    "email": ""
+   },
+   {
+    "name": "Emma Walsh",
+    "email": ""
+   }
+  ],
+  "start": "2026-11-23T08:30:00Z",
+  "end": "2026-11-23T09:00:00Z",
+  "isOnlineMeeting": true
+ },
+ "marks": [
+  131.5,
+  172.0
+ ],
+ "my_notes": "Budget cap 80k is the real constraint\nThey want EU-only backups, check with our infra\n[ ] ask Finance for a phased invoice\ntodo: prepare the workshop agenda"
+}

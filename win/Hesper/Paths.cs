@@ -3,12 +3,18 @@ using System.Text;
 namespace Hesper;
 
 /// Where Hesper keeps its things: everything in %LOCALAPPDATA%\Hesper (~/.local/share/Hesper on
-/// Linux: the engine, Python, models, settings), the meetings in the notes folder. HESPER_HOME moves
-/// the first (a test setup). Shared with the Linux app (linux/Hesper).
+/// Linux: the engine, Python, models, settings; the Microsoft Store version: its package's folder),
+/// the meetings in the notes folder. HESPER_HOME moves the first (a test setup). Shared with the Linux
+/// app (linux/Hesper).
 static class Paths
 {
-    public static string Home { get; } = Environment.GetEnvironmentVariable("HESPER_HOME")
+    public static string Home { get; } = Environment.GetEnvironmentVariable("HESPER_HOME") ?? Platform.StoreHome
         ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Hesper");
+
+    /// Pictures of invented meetings (scripts/store_screenshots.ps1): HESPER_DEMO=1 with a test
+    /// HESPER_HOME. Hesper then counts as set up, without its engine.
+    public static bool Demo { get; } = Environment.GetEnvironmentVariable("HESPER_DEMO") == "1"
+                                       && Environment.GetEnvironmentVariable("HESPER_HOME") != null;
 
     public static string Engine => Path.Combine(Home, "engine");          // the Python engine's source (src/, pyproject.toml, uv.lock)
     public static string Venv => Path.Combine(Home, "venv");

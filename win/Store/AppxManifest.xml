@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Microsoft Store package's description. scripts/store_windows.ps1 fills the {{…}} slots: the
+     identity Partner Center gave the app (identity.json) and the version. What the downloaded exe sets
+     up for itself (Identity.cs: app ID, Start menu shortcut, hesper:// links; Startup in Services.cs:
+     the login item), the package declares here, and Windows removes it all with the app. -->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap3 desktop rescap">
+
+  <Identity Name="{{Name}}" Publisher="{{Publisher}}" Version="{{Version}}" ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>{{DisplayName}}</DisplayName>
+    <PublisherDisplayName>{{PublisherDisplayName}}</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <!-- The app's languages: the Store offers a listing in each -->
+  <Resources>
+    <Resource Language="en-US" />
+    <Resource Language="fr-FR" />
+    <Resource Language="es-ES" />
+    <Resource Language="pt-BR" />
+    <Resource Language="ja-JP" />
+    <Resource Language="zh-CN" />
+  </Resources>
+
+  <Applications>
+    <Application Id="App" Executable="Hesper.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="{{DisplayName}}" Description="Private meeting notes, fully offline"
+                          BackgroundColor="transparent"
+                          Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" />
+      <Extensions>
+        <!-- hesper://record, stop, pause, mark… -->
+        <uap3:Extension Category="windows.protocol">
+          <uap3:Protocol Name="hesper" Parameters="&quot;%1&quot;">
+            <uap:DisplayName>Hesper</uap:DisplayName>
+          </uap3:Protocol>
+        </uap3:Extension>
+        <!-- Open Hesper at login: turned on at the first launch, as the exe does (TrayApp, Startup) -->
+        <desktop:Extension Category="windows.startupTask" Executable="Hesper.exe" EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask TaskId="HesperAtLogin" Enabled="false" DisplayName="Hesper" />
+        </desktop:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <Capability Name="internetClient" />
+    <!-- A desktop app: the microphone and the PC's sound (WASAPI), classic Outlook's calendar, the engine -->
+    <rescap:Capability Name="runFullTrust" />
+    <DeviceCapability Name="microphone" />
+  </Capabilities>
+</Package>

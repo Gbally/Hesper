@@ -16,6 +16,10 @@ static class Platform
     /// The update feeds: latest-linux.json and latest-linux-beta.json.
     public const string Feed = "latest-linux";
 
+    /// Windows' Microsoft Store version; never on Linux.
+    public static bool Store => false;
+    public static string? StoreHome => null;
+
     public static bool Wayland => Environment.GetEnvironmentVariable("XDG_SESSION_TYPE") == "wayland"
                                   || (Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") is { Length: > 0 }
                                       && Environment.GetEnvironmentVariable("XDG_SESSION_TYPE") != "x11");

@@ -25,11 +25,21 @@ static class Program
             Brand.Draw(256, recording: true).Save(Path.ChangeExtension(args[1], ".recording.png"));
             return 0;
         }
-        if (args.Length >= 2 && args[0] == "--capture")  // PNGs of every screen, light and dark
+        if (args.Length >= 2 && args[0] == "--write-package-images")  // the Microsoft Store package's (scripts/store_windows.ps1)
+        {
+            Brand.WritePackageImages(args[1]);
+            return 0;
+        }
+        if (args.Length >= 2 && args[0] == "--capture")  // PNGs of every screen, light and dark; or the shots a JSON file lists
         {
             ApplicationConfiguration.Initialize();
             var form = new Form { ShowInTaskbar = false, Opacity = 0 };
-            form.Shown += async (_, _) => { await Capture(args[1]); Application.Exit(); };
+            form.Shown += async (_, _) =>
+            {
+                try { await (args.Length > 2 ? CaptureShots(args[1], args[2]) : Capture(args[1])); }
+                catch (Exception e) { Directory.CreateDirectory(args[1]); File.WriteAllText(Path.Combine(args[1], "capture-error.txt"), e.ToString()); }
+                Application.Exit();
+            };
             Application.Run(form);
             return 0;
         }
@@ -105,6 +115,28 @@ static class Program
             var name = page.Split('/')[0] + (page.StartsWith("settings/") ? "-" + page.Split('/')[1] : "");
             await w.CapturePng(Path.Combine(dir, name + "-light.png"), false);
             await w.CapturePng(Path.Combine(dir, name + "-dark.png"), true);
+            w.Close();
+        }
+    }
+
+    /// The shots a JSON file lists, for the Microsoft Store's pictures (scripts/store_screenshots.ps1):
+    /// [{name, page, width, height, dark, popover, script}], each a PNG of the page; script is run in
+    /// it first (a tab, a view, a recording to show).
+    static async Task CaptureShots(string dir, string file)
+    {
+        Directory.CreateDirectory(dir);
+        var model = new AppModel();
+        foreach (var shot in System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(file))!.AsArray())
+        {
+            var name = shot!["name"]!.GetValue<string>();
+            var size = new Size(shot["width"]!.GetValue<int>(), shot["height"]!.GetValue<int>());
+            var w = new WebWindow(model, shot["page"]!.GetValue<string>(), size) { StartPosition = FormStartPosition.Manual, Location = new Point(40, 40) };
+            if (shot["popover"]?.GetValue<bool>() == true) w.FormBorderStyle = FormBorderStyle.None;
+            w.Show();
+            for (var i = 0; i < 100 && !w.Loaded; i++) await Task.Delay(100);
+            await Task.Delay(1200);
+            if (w.ClientSize != size) throw new InvalidOperationException($"{name}: the window is {w.ClientSize.Width}×{w.ClientSize.Height}, not {size.Width}×{size.Height} (a screen too small?)");
+            await w.CapturePng(Path.Combine(dir, name + ".png"), shot["dark"]?.GetValue<bool>() == true, shot["script"]?.GetValue<string>());
             w.Close();
         }
     }

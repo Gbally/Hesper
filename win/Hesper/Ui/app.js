@@ -1128,7 +1128,10 @@ async function drawPane() {
       ]) +
       group(tr("Audio recordings"), [item(L("Delete audio recordings"), select("AudioRetentionDays", RETENTION.map(([d, l]) => [d, tr(l)]), s.AudioRetentionDays))],
             tr("Notes and transcripts are kept. The audio — including the short voice samples used to name speakers — is deleted.")) +
-      group(tr("Remove Hesper"), [
+      group(tr("Remove Hesper"), state.store ? [  // the Microsoft Store's: Windows removes it, with its folder
+        caption(engineBytes ? tr("The engine, the AI models and your settings use %@. Uninstalling Hesper from Windows (Settings → Apps → Installed apps) deletes them too; your notes are kept.", fmtBytes(engineBytes))
+                            : tr("Measuring the engine and AI models…")),
+      ] : [
         caption(engineBytes ? linux() ? tr("The engine, the AI models and your settings use %@ (in %@). This removes everything, then Hesper itself.", fmtBytes(engineBytes), (state.home ?? "").replace(/^\/home\/[^/]+/, "~"))
                             : tr("The engine, the AI models and your settings use %@ (in %LOCALAPPDATA%\\Hesper). This removes everything, then Hesper itself.", fmtBytes(engineBytes))
                             : tr("Measuring the engine and AI models…")),
@@ -1150,7 +1153,8 @@ async function drawPane() {
     el.innerHTML = `<div class="row" style="gap:16px;padding:4px 2px">${appIcon(64)}<div><div class="wordmark" style="font-size:28px">Hesper</div>
         <div class="secondary">${L("Private meeting notes, fully offline")} · ${esc(state.version.replace(/\.0$/, ""))}${linux() ? " · " + L("Linux beta") : ""}</div></div></div>` +
       group("", [
-        ...(info ? [item(L("Update available"), `<button class="btn small primary" data-do="installUpdate" ${state.recording || state.job || u.state === "downloading" ? "disabled" : ""}>${esc(tr("Install %@ and restart", info.version))}</button>`),
+        ...(state.store ? [caption(tr("The Microsoft Store keeps Hesper up to date."))]
+          : info ? [item(L("Update available"), `<button class="btn small primary" data-do="installUpdate" ${state.recording || state.job || u.state === "downloading" ? "disabled" : ""}>${esc(tr("Install %@ and restart", info.version))}</button>`),
                     ...(info.notes ? [caption(info.notes)] : []),
                     ...(state.recording || state.job ? [caption(tr("Available once nothing is recording or processing."))] : [])]
                  : [item(L("Updates"), `<button class="btn small" data-do="checkUpdate">${L(u.state === "checking" ? "Checking…" : "Check now")}</button>`),
@@ -1158,7 +1162,7 @@ async function drawPane() {
         ...(u.state === "downloading" ? [`<div class="item" style="flex-direction:column;align-items:stretch;gap:6px"><span class="caption">${L("Downloading the update…")}</span>${progressBar(u.progress)}</div>`] : []),
         ...(u.state === "failed" ? [`<div class="item error-text">${esc(u.error)}</div>`] : []),
         line(`<a data-url="${REPO}/releases">${L("Release notes")}</a>`),
-        item(L("Receive test versions"), toggle("TestVersions", s.TestVersions), L("Versions with fixes still being tried, before they're released to everyone. Same signature checks as releases.")),
+        ...(state.store ? [] : [item(L("Receive test versions"), toggle("TestVersions", s.TestVersions), L("Versions with fixes still being tried, before they're released to everyone. Same signature checks as releases."))]),
       ]) +
       group(tr("Open source"), [
         `<div class="item"><div style="width:22px;height:22px;color:var(--accent)">${glyph("currentColor")}</div><div class="label"><b>${L("Hesper is free and open source")}</b>

@@ -14,6 +14,24 @@ static class Platform
     /// The update feeds: latest-windows.json and latest-windows-beta.json.
     public const string Feed = "latest-windows";
 
+    /// The Microsoft Store version (an MSIX package, scripts/store_windows.ps1): Windows installs,
+    /// updates and removes it, and gives it its app ID, Start menu entry, hesper:// links and login
+    /// item (win/Store/AppxManifest.xml). False for the downloaded exe.
+    public static bool Store { get; } = HasPackage();
+
+    /// The Store version's data folder: the package's own (…\Packages\<name>\LocalCache), a real
+    /// folder every app sees, deleted by Windows with the app. Null for the downloaded exe.
+    public static string? StoreHome => Store ? global::Windows.Storage.ApplicationData.Current.LocalCacheFolder.Path : null;
+
+    [DllImport("kernel32.dll")]
+    static extern int GetCurrentPackageFullName(ref int length, IntPtr name);
+
+    static bool HasPackage()
+    {
+        var length = 0;
+        return GetCurrentPackageFullName(ref length, IntPtr.Zero) != 15700;  // APPMODEL_ERROR_NO_PACKAGE
+    }
+
     /// What the desktop allows, for the pages (Linux: a tray icon or not, global shortcuts…); nothing
     /// to say on Windows.
     public static JsonObject? Desktop() => null;

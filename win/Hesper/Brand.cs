@@ -66,6 +66,27 @@ static class Brand
         foreach (var img in images) w.Write(img);
     }
 
+    /// The Microsoft Store package's images (win/Store/AppxManifest.xml names them, Windows picks the
+    /// file for the scale or size it needs): the Start menu and taskbar icon, the tile, the Store logo.
+    public static void WritePackageImages(string dir)
+    {
+        Directory.CreateDirectory(dir);
+        void Png(string name, int size)
+        {
+            using var bmp = Draw(size);
+            bmp.Save(Path.Combine(dir, name), System.Drawing.Imaging.ImageFormat.Png);
+        }
+        foreach (var scale in new[] { 100, 125, 150, 200, 400 })
+        {
+            Png($"Square44x44Logo.scale-{scale}.png", 44 * scale / 100);
+            Png($"Square150x150Logo.scale-{scale}.png", 150 * scale / 100);
+            Png($"StoreLogo.scale-{scale}.png", 50 * scale / 100);
+        }
+        foreach (var size in new[] { 16, 20, 24, 30, 32, 36, 40, 48, 60, 64, 72, 80, 96, 256 })
+            foreach (var form in new[] { "", "_altform-unplated", "_altform-lightunplated" })  // the taskbar's: no plate behind
+                Png($"Square44x44Logo.targetsize-{size}{form}.png", size);
+    }
+
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     static extern bool DestroyIcon(IntPtr handle);
 

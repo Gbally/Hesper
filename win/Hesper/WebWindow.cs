@@ -102,11 +102,17 @@ class WebWindow : Form
 
     public bool Loaded => ready;
 
-    /// A PNG of the page, in the given colour scheme (Hesper.exe --capture, to compare with the Mac).
-    public async Task CapturePng(string path, bool dark)
+    /// A PNG of the page, in the given colour scheme (Hesper.exe --capture, to compare with the Mac),
+    /// after running script in it if given.
+    public async Task CapturePng(string path, bool dark, string? script = null)
     {
         web.CoreWebView2.Profile.PreferredColorScheme = dark ? CoreWebView2PreferredColorScheme.Dark : CoreWebView2PreferredColorScheme.Light;
         await Task.Delay(700);
+        if (script != null)
+        {
+            await web.CoreWebView2.ExecuteScriptAsync(script);
+            await Task.Delay(700);
+        }
         await using var f = File.Create(path);
         await web.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, f);
     }

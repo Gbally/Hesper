@@ -8,10 +8,12 @@ namespace Hesper;
 /// Who Hesper is to Windows, for its notifications: one app ID (AppUserModelID) set on the process,
 /// registered with its name and icon, and a Start menu shortcut carrying it. Without it, Windows makes
 /// up an ID from the exe's path when the first notification comes, and a first launch may show none
-/// (Hesper then isn't in Settings → Notifications either). All per user, no admin rights.
+/// (Hesper then isn't in Settings → Notifications either). All per user, no admin rights. The
+/// Microsoft Store version has all this from its package (win/Store/AppxManifest.xml): nothing to do.
 static class Identity
 {
-    public const string AppId = "Gbally.Hesper";
+    public static string AppId { get; } = Platform.Store
+        ? global::Windows.ApplicationModel.Package.Current.Id.FamilyName + "!App" : "Gbally.Hesper";
     static string RegistryKey => @"Software\Classes\AppUserModelId\" + AppId;
     public static string Shortcut => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Hesper.lnk");
 
@@ -21,6 +23,7 @@ static class Identity
     /// At start, before any window or the notification icon.
     public static void Register()
     {
+        if (Platform.Store) return;
         try
         {
             SetCurrentProcessExplicitAppUserModelID(AppId);
