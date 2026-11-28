@@ -23,7 +23,7 @@
   "Budget cap of €80k secured by deferring SSO costs to next year; revised quote requested by Wednesday.",
   "Backup servers must be moved from US to EU (Frankfurt) to satisfy legal requirements; confirmation needed by next Friday.",
   "Pilot program approved for 40 finance users over two weeks before full rollout to 600 employees.",
-  "Legal approval for Data Processing Agreement required by November 6th.",
+  "Legal approval for Data Processing Agreement required by December 4th.",
   "Technical workshop scheduled for next week; user list for pilot to be sent Monday."
  ],
  "decisions": [
@@ -33,7 +33,7 @@
   "All data must stay in the European Union",
   "Alex Martin to confirm if backups can be moved to Europe by next Friday",
   "Execute a pilot with 40 finance users for two weeks before full deployment.",
-  "Legal approval for data processing agreement needed by November 6th",
+  "Legal approval for data processing agreement needed by December 4th",
   "Move backup provider from US to Europe (Frankfurt) to satisfy legal requirements."
  ],
  "actions": [
@@ -125,7 +125,7 @@
     "6–8 weeks — estimated time for SSO integration.",
     "December 1st — target go-live date without SSO.",
     "January — planned go-live date with SSO.",
-    "November 6th — deadline for legal approval of Data Processing Agreement.",
+    "December 4th — deadline for legal approval of Data Processing Agreement.",
     "Next Friday — deadline for confirming EU backup location.",
     "Monday — deadline for sending pilot user list.",
     "Next week — scheduled technical workshop.",

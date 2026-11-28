@@ -43,7 +43,7 @@
    "start": 30.0099375,
    "end": 41.429937499999994,
    "speaker": "Alex Martin",
-   "text": "Hi both. So, the goal today is to go through your requirements for the rollout and decree on the plan. David, do you want to start with what matters most for you?",
+   "text": "Hi both. So, the goal today is to go through your requirements for the rollout and agree on the plan. David, do you want to start with what matters most for you?",
    "lang": "en",
    "track": "mic"
   },
@@ -59,7 +59,7 @@
    "start": 62.01987500000001,
    "end": 74.499875,
    "speaker": "Alex Martin",
-   "text": "Okay. The Excel export is easy, we already have it in beta. Single sign-on is more work. With your Azure setup I estimate 6 to 8 weeks. 6",
+   "text": "Okay. The Excel export is easy, we already have it in beta. Single sign-on is more work. With your Azure setup I estimate 6 to 8 weeks.",
    "lang": "en",
    "track": "mic"
   },
@@ -91,7 +91,7 @@
    "start": 100.98,
    "end": 104.239875,
    "speaker": "Alex Martin",
-   "text": "They do. Two factors are by default.",
+   "text": "They do. Two-factor is on by default.",
    "lang": "en",
    "track": "mic"
   },
@@ -187,7 +187,7 @@
    "start": 207.3998125,
    "end": 215.9598125,
    "speaker": "David",
-   "text": "Perfect. And on my side, I need the legal approval for the data processing agreement. I'll get that signed by November 6th.",
+   "text": "Perfect. And on my side, I need the legal approval for the data processing agreement. I'll get that signed by December 4th.",
    "lang": "en",
    "track": "meeting"
   },

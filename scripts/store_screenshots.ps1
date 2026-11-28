@@ -58,8 +58,8 @@ $Settings = [ordered]@{
 $Clean = 'state.betterModel = null; state.laterPending = false; state.memory = null; state.job = null; state.answer = null;'
 $Recording = $Clean + @'
 state.recording = { elapsed: 1384, mic: 0.2, system: 0.34, notices: [], id: "demo-recording", template: null, asking: null, paused: false,
-  event: { title: "Q4 renewal with Northwind", end: new Date(Date.now() + 26 * 60000).toISOString() },
-  notes: "Budget cap 80k is the real constraint\n[ ] ask Finance for a phased invoice" };
+  event: { title: "Helios Energy: contract terms", end: new Date(Date.now() + 26 * 60000).toISOString() },
+  notes: "Their legal team wants the liability cap at 1x annual fees\n[ ] send the redlined contract to Laura" };
 drawContent(); drawLive();
 '@
 $Ask = $Clean + @'
@@ -70,7 +70,9 @@ drawContent();
 '@
 $Shots = @(
     @{ name = "today"; page = "home"; width = 400; height = 600; popover = $true; script = $Clean + 'tab = "today"; drawContent(); drawTabs();' }
-    @{ name = "recording"; page = "home"; width = 400; height = 600; popover = $true; script = $Recording }
+    # taller than the popover (as the resizable home window can be): the recording card fills 600 points,
+    # and this morning's meeting should show below it
+    @{ name = "recording"; page = "home"; width = 400; height = 720; popover = $true; script = $Recording }
     @{ name = "todos"; page = "home"; width = 400; height = 600; popover = $true; script = $Clean + 'tab = "todos"; drawContent(); drawTabs();' }
     @{ name = "ask"; page = "home"; width = 400; height = 600; popover = $true; script = $Ask }
     @{ name = "meeting"; page = "meeting/northwind-renewal"; width = 760; height = 900 }
@@ -140,7 +142,7 @@ function Compose([string]$file, [object[]]$layers) {
 
 Write-Host "- Composing the Store's pictures"
 Compose "01-notes.png" @(@("meeting", 360, 90), @("today", 1160, 390))
-Compose "02-recording.png" @(@("recording", 500, 240), @("todos", 1020, 240))
+Compose "02-recording.png" @(@("recording", 500, 180), @("todos", 1020, 240))
 Compose "03-transcript.png" @(@("transcript", 360, 90), @("ask", 1160, 390))
 Compose "04-dark.png" @(@("meeting-dark", 360, 90), @("today-dark", 1160, 390))
 

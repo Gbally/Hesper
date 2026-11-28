@@ -72,7 +72,8 @@ const appIcon = size => `<svg width="${size}" height="${size}" viewBox="0 0 100 
   <defs><clipPath id="sq${size}"><rect width="100" height="100" rx="22"/></clipPath></defs>
   <rect width="100" height="100" rx="22" fill="#1B1F2E"/>
   <g clip-path="url(#sq${size})"><circle cx="50" cy="132" r="64" fill="#2E3550" stroke="rgba(242,181,68,.9)" stroke-width="2.2"/></g>
-  <path d="M50 22Q50 38 64 38Q50 38 50 54Q50 38 36 38Q50 38 50 22Z" fill="#F2B544"/></svg>`;
+  <path d="M50 22Q50 38 64 38Q50 38 50 54Q50 38 36 38Q50 38 50 22Z" fill="#F2B544"/>
+  <rect x="1.5" y="1.5" width="97" height="97" rx="20.5" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="3"/></svg>`;  // a light rim: the dark theme's background is the icon's own colour
 const ICONS = {
   gear: '<path d="M6.9 1.5h2.2l.4 1.9 1.3.6 1.7-1 1.5 1.5-1 1.7.6 1.3 1.9.4v2.2l-1.9.4-.6 1.3 1 1.7-1.5 1.5-1.7-1-1.3.6-.4 1.9H6.9l-.4-1.9-1.3-.6-1.7 1-1.5-1.5 1-1.7-.6-1.3-1.9-.4V6.9l1.9-.4.6-1.3-1-1.7 1.5-1.5 1.7 1 1.3-.6z"/><circle cx="8" cy="8" r="2.2"/>',
   more: '<circle cx="3.5" cy="8" r=".9" fill="currentColor"/><circle cx="8" cy="8" r=".9" fill="currentColor"/><circle cx="12.5" cy="8" r=".9" fill="currentColor"/>',
