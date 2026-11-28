@@ -15,7 +15,8 @@ and a to-do list — with AI that runs entirely on your Mac or PC. Free, open so
 
 <p align="center">
   <a href="https://github.com/Gbally/Hesper/releases/latest"><b>Download for Mac</b></a> ·
-  <a href="https://github.com/Gbally/Hesper/releases/latest"><b>Download for Windows</b></a> (preview) ·
+  <a href="https://apps.microsoft.com/detail/9ppcqszfl1fh"><b>Windows: Microsoft Store</b></a>
+  or <a href="https://github.com/Gbally/Hesper/releases/latest">.exe</a> (preview) ·
   <a href="https://github.com/Gbally/Hesper/releases/latest"><b>Download for Linux</b></a> (beta) ·
   <a href="https://gbally.github.io/Hesper/">Website</a> ·
   <a href="PRIVACY.md">Privacy</a> ·
@@ -119,11 +120,15 @@ Details in [INSTALL.txt](mac/INSTALL.txt).
 Requirements: Windows 10 or 11, 16 GB memory, ~8 GB free disk space. An NVIDIA graphics card makes
 it about 5× faster; without one everything runs on the processor.
 
-1. Download `Hesper-<version>.exe` from the [latest release](https://github.com/Gbally/Hesper/releases/latest)
-   and run it. Windows SmartScreen may warn about an unknown publisher (the app isn't signed yet):
-   **More info → Run anyway**.
+1. Get Hesper from the [Microsoft Store](https://apps.microsoft.com/detail/9ppcqszfl1fh): signed by
+   Microsoft, so no warning, and the Store keeps it up to date.
+
+   Or download `Hesper-<version>.exe` from the [latest release](https://github.com/Gbally/Hesper/releases/latest)
+   and run it; it updates itself. Windows SmartScreen may warn about an unknown publisher (the `.exe`
+   isn't signed yet): **More info → Run anyway**. The two are separate installs, each with its own
+   AI engine and settings, so pick one.
 2. The welcome takes you through the same steps as on the Mac. Hesper lives in the notification
-   area and updates itself.
+   area.
 
 ### Linux (beta)
 
