@@ -70,7 +70,7 @@ if ($p.ExitCode -ne 0 -or -not (Test-Path "$Layout\Assets\StoreLogo.scale-100.pn
 $Manifest = Get-Content win\Store\AppxManifest.xml -Raw -Encoding UTF8
 $Slots = @{ Name = $Id.name; Publisher = $Id.publisher; PublisherDisplayName = $Id.publisherDisplayName; DisplayName = $Id.displayName; Version = $PackageVersion }
 foreach ($k in $Slots.Keys) { $Manifest = $Manifest.Replace("{{$k}}", [Security.SecurityElement]::Escape([string]$Slots[$k])) }
-if ($Manifest -match "{{") { throw "AppxManifest.xml has a slot this script doesn't fill." }
+if ($Manifest -match "\{\{[A-Za-z]+\}\}") { throw "AppxManifest.xml has a slot this script doesn't fill." }
 [IO.File]::WriteAllText("$Layout\AppxManifest.xml", $Manifest)  # UTF-8 without BOM
 
 # 4. makepri (which image for which scale and size: resources.pri) and makeappx (the .msix)
